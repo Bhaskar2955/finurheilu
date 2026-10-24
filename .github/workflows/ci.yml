@@ -79,3 +79,33 @@ jobs:
       - name: Show logs on failure
         if: failure()
         run: docker compose logs --tail 40 | sed 's/^/::error::/'
+
+  app2:
+    # React + TypeScript client and Node.js API (Appwrite version).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Server typecheck and build
+        working-directory: app2/server
+        run: |
+          npm install
+          npm run typecheck
+          npm run build
+      - name: Client typecheck and build
+        working-directory: app2/client
+        run: |
+          npm install
+          npm run build
+      - name: Smoke test (one-port production mode, no Appwrite keys)
+        working-directory: app2/server
+        run: |
+          nohup npm start > /tmp/app2.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4000/api/health > /tmp/health.json && break; sleep 1; done
+          cat /tmp/health.json
+          curl -sf http://localhost:4000/api/data | grep -q Kärpät
+          curl -sf http://localhost:4000/ | grep -q '<div id="root">'
+      - name: Show server log on failure
+        if: failure()
+        run: tail -n 40 /tmp/app2.log | sed 's/^/::error title=app2::/'

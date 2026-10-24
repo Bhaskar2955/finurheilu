@@ -4,6 +4,8 @@ Liiga hockey news your way, for the JunctionX Oulu 2026 Kaleva Media challenge.
 AI writes match summaries (Finnish, Swedish, English), makes highlight videos and two-host podcasts.
 **A human editor approves everything before readers see it.**
 
+> **New: [`app2/`](app2/README.md)** is the full FinUrheilu 2.0 app in React + TypeScript + Node.js, with Appwrite Cloud (free) as the database and live liiga.fi data. It is responsive (phone, tablet, desktop). Setup guide: [app2/README.md](app2/README.md).
+
 ```
 Liiga data ──► Python AI worker ──► drafts in Postgres ──► Newsroom (editor) ──► approved ──► Reader app
                Claude, FFmpeg,      (readers can't          approve / fix /        row-level security:

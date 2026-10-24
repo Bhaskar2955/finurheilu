@@ -1,0 +1,36 @@
+/** Text added in the React version (data source, Appwrite sign-in, Gemini rewrite). */
+export const EXTRA: Record<"fi" | "en" | "sv", Record<string, any>> = {
+  en: {
+    dataH: "Liiga data", dataLive: "Live data from Liiga.fi", dataCache: "Last copy stored in Appwrite", dataSample: "Built-in sample data",
+    dataAt: (d: string) => `Updated ${d}`, refresh: "Refresh",
+    realLive: "Live from Liiga", realFinal: "Final · Liiga",
+    aiRewrite: "Rewrite with Gemini", aiRewriting: "Gemini is writing…", aiRewritten: "Written by Gemini · fact-checked",
+    aiRejected: "Gemini's version had a fact that doesn't match the data, so the checked version is shown.",
+    awDemo: "Demo mode: Appwrite isn't set up, so your account stays on this device.",
+    awSaved: "Your settings are saved to your account.", errNet: "Can't reach the server. Try again.",
+    cmSoonH: "Community is coming next", cmSoonB: "Chat rooms, polls, the daily quiz and meetups arrive in the next update.",
+    goalsBy: "Goals",
+  },
+  fi: {
+    dataH: "Liiga-data", dataLive: "Live-data Liiga.fi:stä", dataCache: "Appwriteen tallennettu kopio", dataSample: "Sisäänrakennettu esimerkkidata",
+    dataAt: (d: string) => `Päivitetty ${d}`, refresh: "Päivitä",
+    realLive: "Livenä Liigasta", realFinal: "Loppu · Liiga",
+    aiRewrite: "Kirjoita uudelleen Geminillä", aiRewriting: "Gemini kirjoittaa…", aiRewritten: "Geminin kirjoittama · faktat tarkistettu",
+    aiRejected: "Geminin versiossa oli fakta, joka ei vastaa dataa, joten tarkistettu versio näytetään.",
+    awDemo: "Demotila: Appwritea ei ole määritetty, joten tilisi pysyy tällä laitteella.",
+    awSaved: "Asetuksesi tallennetaan tiliisi.", errNet: "Palvelimeen ei saada yhteyttä. Yritä uudelleen.",
+    cmSoonH: "Yhteisö tulossa seuraavaksi", cmSoonB: "Chattihuoneet, äänestykset, päivän visa ja tapaamiset tulevat seuraavassa päivityksessä.",
+    goalsBy: "Maalit",
+  },
+  sv: {
+    dataH: "Liiga-data", dataLive: "Livedata från Liiga.fi", dataCache: "Senaste kopian i Appwrite", dataSample: "Inbyggd exempeldata",
+    dataAt: (d: string) => `Uppdaterad ${d}`, refresh: "Uppdatera",
+    realLive: "Live från Liiga", realFinal: "Slut · Liiga",
+    aiRewrite: "Skriv om med Gemini", aiRewriting: "Gemini skriver…", aiRewritten: "Skriven av Gemini · faktagranskad",
+    aiRejected: "Geminis version hade ett faktum som inte stämmer med datan, så den granskade versionen visas.",
+    awDemo: "Demoläge: Appwrite är inte inställt, så ditt konto stannar på den här enheten.",
+    awSaved: "Dina inställningar sparas på ditt konto.", errNet: "Servern går inte att nå. Försök igen.",
+    cmSoonH: "Gemenskapen kommer härnäst", cmSoonB: "Chattrum, omröstningar, dagens quiz och träffar kommer i nästa uppdatering.",
+    goalsBy: "Mål",
+  },
+};
