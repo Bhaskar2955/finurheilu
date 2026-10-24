@@ -62,6 +62,13 @@ def rewrite_summary(game_id: str, instruction: str | None) -> None:
         _safe(podcast.run_podcast, game_id)
 
 
+@app.get("/")
+def root() -> dict:
+    return {"service": "FinUrheilu AI worker", "status": "running",
+            "note": "This is the backend. Open the app at http://localhost:3000 and the newsroom at /newsroom.",
+            "health": "/health"}
+
+
 @app.get("/health")
 def health() -> dict:
     from .llm import provider, writer_model
