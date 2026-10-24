@@ -34,6 +34,15 @@ def base_rank(e: dict) -> float:
     return 0.4
 
 
+def ff_path(p: str) -> str:
+    """A file path written safely inside an FFmpeg filter (Windows drive letters, spaces)."""
+    return "'" + p.replace("\\", "/").replace(":", "\\:").replace("'", "") + "'"
+
+
+def concat_line(p: str) -> str:
+    return "file '" + p.replace("\\", "/").replace("'", "") + "'\n"
+
+
 def run(cmd: list[str]) -> subprocess.CompletedProcess:
     p = subprocess.run(cmd, capture_output=True, text=True)
     if p.returncode != 0:
@@ -60,7 +69,7 @@ def card(tmp: str, name: str, bg: str, lines: list[tuple[str, int, int]], dur: f
         tf = os.path.join(tmp, f"{name}-{i}.txt")
         with open(tf, "w", encoding="utf-8") as f:
             f.write(text)
-        filters.append(f"drawtext=fontfile={config.FONT_FILE}:textfile={tf}:fontcolor=white:fontsize={size}:"
+        filters.append(f"drawtext=fontfile={ff_path(config.FONT_FILE)}:textfile={ff_path(tf)}:fontcolor=white:fontsize={size}:"
                        f"borderw=3:bordercolor=black@0.55:x=(w-text_w)/2:y={y}")
     filters.append(f"fade=t=in:st=0:d=0.3,fade=t=out:st={dur - 0.3:.2f}:d=0.3")
     out = os.path.join(tmp, f"{name}.mp4")
@@ -94,7 +103,7 @@ def data_video(g: dict, events: list[dict], colors: dict[str, str]) -> tuple[byt
         parts.append(card(tmp, "outro", "0B1F33", [("FinUrheilu", 64, 540), ("AI-made · editor-approved", 34, 640)], 2.0))
         lst = os.path.join(tmp, "list.txt")
         with open(lst, "w") as f:
-            f.writelines(f"file '{p}'\n" for p in parts)
+            f.writelines(concat_line(p) for p in parts)
         out = os.path.join(tmp, "reel.mp4")
         run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst,
              "-c", "copy", "-movflags", "+faststart", out])
@@ -131,7 +140,7 @@ def footage_reel(source_url: str, events: list[dict]) -> tuple[bytes, list[dict]
         chosen.sort(key=lambda x: x["event"]["game_seconds"])
         lst = os.path.join(tmp, "list.txt")
         with open(lst, "w") as f:
-            f.writelines(f"file '{c['path']}'\n" for c in chosen)
+            f.writelines(concat_line(c["path"]) for c in chosen)
         out = os.path.join(tmp, "reel.mp4")
         run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst,
              "-c", "copy", "-movflags", "+faststart", out])

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import tempfile
 
@@ -38,11 +39,15 @@ TOOL = {
 
 
 def duration_s(mp3: bytes) -> int | None:
-    with tempfile.NamedTemporaryFile(suffix=".mp3") as f:
+    # delete=False + manual cleanup: Windows can't reopen a file that is still open.
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
         f.write(mp3)
-        f.flush()
-        out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f.name],
+        name = f.name
+    try:
+        out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", name],
                              capture_output=True, text=True)
+    finally:
+        os.remove(name)
     try:
         return round(float(out.stdout.strip()))
     except ValueError:

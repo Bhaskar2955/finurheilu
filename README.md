@@ -90,25 +90,32 @@ The free plan sleeps after 15 minutes without traffic; the first request then ta
 Stop it with `Ctrl+C`. `docker compose down -v` also wipes the database so you can start fresh.
 It uses the free demo writer. For real AI, create a file named `.env` in the same folder with `AI_PROVIDER=gemini` and `GEMINI_API_KEY=your-key`, then run `docker compose up` again.
 
-## Run the parts by hand (for development)
+## Run the parts by hand (no Docker)
 
-Needs a local Postgres 16, Python 3.12, Node 20 and FFmpeg.
+Install: **PostgreSQL 16**, **Python 3.12**, **Node.js 20 LTS** and **FFmpeg** (Windows: `winget install Gyan.FFmpeg`; Mac: `brew install ffmpeg`).
 
 ```bash
-# database (local Postgres on port 5433 here; adjust PGHOST/PGPORT)
-PGHOST=localhost PGPORT=5432 dev/reset_db.sh
+# 1. Database (use the password you chose when installing PostgreSQL)
+psql -U postgres -c "create database fu"
+psql -U postgres -d fu -f dev/local_setup.sql
 
-# worker with the free demo writer (no API key needed) – or uvicorn app.main:app with AI_PROVIDER/keys set
-cd worker && pip install -r requirements.txt
-DATABASE_URL="host=localhost port=5432 user=postgres dbname=fu" WORKER_TOKEN=dev python ../dev/fake_ai.py
+# 2. AI worker  (terminal 1)
+cd worker
+cp .env.local.example .env            # Windows: copy .env.local.example .env   -> edit the password
+python -m venv .venv
+source .venv/bin/activate             # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --port 8000
 
-# web
-cd web && npm install
-DATABASE_URL=postgres://postgres@localhost:5432/fu NEWSROOM_PASSWORD=kaleva WORKER_URL=http://localhost:8000 WORKER_TOKEN=dev npm run dev
-
-# end-to-end test (with the stack above running and a fresh database)
-cd web && npx playwright install chromium && npx playwright test
+# 3. App + newsroom  (terminal 2)
+cd web
+cp .env.local.example .env.local      # Windows: copy .env.local.example .env.local -> edit the password
+npm install
+npm run dev
 ```
+
+Open http://localhost:3000 and http://localhost:3000/newsroom (password `kaleva`).
+End-to-end test with a fresh database: `cd web && npx playwright install chromium && npx playwright test`.
 
 ## Security model
 
