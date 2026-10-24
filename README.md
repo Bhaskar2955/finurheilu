@@ -37,7 +37,7 @@ The worker's `AI_PROVIDER` setting decides who writes the texts:
 | `AI_PROVIDER` | Cost | Key needed | Quality |
 |---|---|---|---|
 | `demo` (default in render.yaml) | Free forever | None | Plain template texts from the Liiga data, in fi/sv/en. Every fact is real. The first draft has one deliberate shot-count mistake so the fact check has something to catch (`DEMO_MISTAKE=0` turns it off). |
-| `gemini` | Free tier | `GEMINI_API_KEY` from aistudio.google.com (no card) | Real AI writing. Free-tier limits apply; check Google's current terms. |
+| `gemini` | Free tier | `GEMINI_API_KEY` from aistudio.google.com (no card) | Real AI writing. Free-tier limits apply; check Google's current terms. If the default model has been retired, the worker switches to a current Flash model by itself (or set `GEMINI_MODEL`). |
 | `claude` | Paid (a few cents per game) | `ANTHROPIC_API_KEY` | Best Finnish and Swedish. |
 
 You can switch any time in Render → Environment; the worker restarts in a minute. `/health` shows which one is active.

@@ -30,12 +30,29 @@ def to_gemini_schema(schema: dict) -> dict:
     return s
 
 
+def pick_model(names: list[str]) -> str | None:
+    """Choose a Flash model (fast, on the free tier) from the models this key can use."""
+    flash = [n for n in names if "flash" in n and "lite" not in n and "image" not in n and "tts" not in n
+             and "live" not in n and "audio" not in n and "exp" not in n]
+    lite = [n for n in names if "flash-lite" in n]
+    pool = flash or lite or names
+    return sorted(pool, reverse=True)[0] if pool else None
+
+
 class Gemini:
     name = "gemini"
 
     def __init__(self) -> None:
         if not config.GEMINI_API_KEY:
             raise RuntimeError("GEMINI_API_KEY is not set")
+        self.model = config.GEMINI_MODEL
+
+    def _available_models(self) -> list[str]:
+        r = httpx.get("https://generativelanguage.googleapis.com/v1beta/models",
+                      params={"key": config.GEMINI_API_KEY, "pageSize": 200}, timeout=30)
+        r.raise_for_status()
+        return [m["name"].split("/", 1)[1] for m in r.json().get("models", [])
+                if "generateContent" in m.get("supportedGenerationMethods", [])]
 
     def call_tool(self, model: str, system: str, prompt: str, tool: dict) -> tuple[dict, dict]:
         body = {
@@ -48,8 +65,12 @@ class Gemini:
             "toolConfig": {"functionCallingConfig": {"mode": "ANY", "allowedFunctionNames": [tool["name"]]}},
             "generationConfig": {"temperature": 0.4},
         }
-        r = httpx.post(URL.format(model=config.GEMINI_MODEL), params={"key": config.GEMINI_API_KEY},
-                       json=body, timeout=180)
+        r = httpx.post(URL.format(model=self.model), params={"key": config.GEMINI_API_KEY}, json=body, timeout=180)
+        if r.status_code == 404:  # model retired or renamed: pick a current Flash model and retry once
+            better = pick_model(self._available_models())
+            if better and better != self.model:
+                self.model = better
+                r = httpx.post(URL.format(model=self.model), params={"key": config.GEMINI_API_KEY}, json=body, timeout=180)
         if r.status_code >= 400:
             raise RuntimeError(f"Gemini error {r.status_code}: {r.text[:400]}")
         data = r.json()
