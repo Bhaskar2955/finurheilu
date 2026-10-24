@@ -51,8 +51,15 @@ jobs:
         working-directory: web
         run: |
           ../dev/reset_db.sh
-          npx playwright install --with-deps chromium
-          (cd ../worker && DATABASE_URL="$DATABASE_URL_PY" WORKER_TOKEN=ci MEDIA_DIR=/tmp/media PUBLIC_BASE_URL=http://localhost:8000 python ../dev/fake_ai.py &)
-          DATABASE_URL="$DATABASE_URL_JS" NEWSROOM_PASSWORD=kaleva WORKER_URL=http://localhost:8000 WORKER_TOKEN=ci npm start &
-          npx wait-on -t 60000 http://localhost:3000 http://localhost:8000/health
-          NEWSROOM_PASSWORD=kaleva npx playwright test
+          npx playwright install --with-deps chromium > /dev/null
+          (cd ../worker && DATABASE_URL="$DATABASE_URL_PY" WORKER_TOKEN=ci MEDIA_DIR=/tmp/media PUBLIC_BASE_URL=http://localhost:8000 nohup python ../dev/fake_ai.py > /tmp/worker.log 2>&1 &)
+          DATABASE_URL="$DATABASE_URL_JS" NEWSROOM_PASSWORD=kaleva WORKER_URL=http://localhost:8000 WORKER_TOKEN=ci nohup npm start > /tmp/web.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/api/teams > /dev/null && curl -sf http://localhost:8000/health > /dev/null && break; sleep 2; done
+          # On failure, show the output as annotations (readable without downloading logs).
+          if ! NEWSROOM_PASSWORD=kaleva npx playwright test --reporter=line > /tmp/pw.log 2>&1; then
+            tail -n 60 /tmp/pw.log | sed 's/^/::error title=playwright::/'
+            tail -n 25 /tmp/web.log | sed 's/^/::error title=web::/'
+            tail -n 25 /tmp/worker.log | sed 's/^/::error title=worker::/'
+            exit 1
+          fi
+          tail -n 5 /tmp/pw.log
