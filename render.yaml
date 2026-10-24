@@ -1,0 +1,30 @@
+# Render Blueprint: the Python AI worker (FastAPI + FFmpeg) as a Docker web service.
+# In Render: New -> Blueprint -> pick this repo. Fill in the secrets it asks for.
+services:
+  - type: web
+    name: finurheilu-worker
+    runtime: docker
+    rootDir: worker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: WORKER_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: AZURE_SPEECH_KEY
+        sync: false
+      - key: AZURE_SPEECH_REGION
+        value: northeurope
+      - key: CLAUDE_MODEL_WRITER
+        value: claude-sonnet-5-5
+      - key: CLAUDE_MODEL_FAST
+        value: claude-haiku-5-5

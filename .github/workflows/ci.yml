@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGPASSWORD: postgres
+      DATABASE_URL_PY: host=localhost port=5432 user=postgres password=postgres dbname=fu
+      DATABASE_URL_JS: postgres://postgres:postgres@localhost:5432/fu
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core postgresql-client
+
+      - name: Create the database (Supabase stand-ins + schema + sample data)
+        run: dev/reset_db.sh
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Worker tests (fact check + full pipeline with a fake Claude)
+        working-directory: worker
+        run: |
+          pip install -r requirements.txt
+          DATABASE_URL="$DATABASE_URL_PY" python -m unittest discover -s tests -v
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Web typecheck and build
+        working-directory: web
+        run: |
+          npm install
+          npm run typecheck
+          npm run build
+
+      - name: End-to-end test (reader -> AI -> editor -> reader)
+        working-directory: web
+        run: |
+          ../dev/reset_db.sh
+          npx playwright install --with-deps chromium
+          (cd ../worker && DATABASE_URL="$DATABASE_URL_PY" WORKER_TOKEN=ci MEDIA_DIR=/tmp/media PUBLIC_BASE_URL=http://localhost:8000 python ../dev/fake_ai.py &)
+          DATABASE_URL="$DATABASE_URL_JS" NEWSROOM_PASSWORD=kaleva WORKER_URL=http://localhost:8000 WORKER_TOKEN=ci npm start &
+          npx wait-on -t 60000 http://localhost:3000 http://localhost:8000/health
+          NEWSROOM_PASSWORD=kaleva npx playwright test
