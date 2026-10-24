@@ -73,9 +73,26 @@ The free plan sleeps after 15 minutes without traffic; the first request then ta
 2. **Games and AI → Run AI** on *Kärpät 3–2 Tappara*. Drafts appear in **Review queue** in about a minute.
 3. Check the facts, approve, and open the reader app: the content is there.
 
-## Run everything on your laptop
+## Run it on your own computer (one command)
 
-Needs Docker or a local Postgres 16, Python 3.12, Node 20 and FFmpeg.
+1. Install **Docker Desktop** (docker.com/products/docker-desktop) and start it.
+2. Download this repo: GitHub → **Code → Download ZIP**, and unzip it (or `git clone`).
+3. Open a terminal in the `finurheilu` folder and run:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   The first start takes 5–10 minutes (it downloads Postgres, Python and Node and builds everything). Later starts take seconds.
+4. Open **http://localhost:3000** for the reader app and **http://localhost:3000/newsroom** for the newsroom (password `kaleva`).
+5. In the newsroom: **Games and AI → Run AI** on Kärpät–Tappara, then review and publish.
+
+Stop it with `Ctrl+C`. `docker compose down -v` also wipes the database so you can start fresh.
+It uses the free demo writer. For real AI, create a file named `.env` in the same folder with `AI_PROVIDER=gemini` and `GEMINI_API_KEY=your-key`, then run `docker compose up` again.
+
+## Run the parts by hand (for development)
+
+Needs a local Postgres 16, Python 3.12, Node 20 and FFmpeg.
 
 ```bash
 # database (local Postgres on port 5433 here; adjust PGHOST/PGPORT)

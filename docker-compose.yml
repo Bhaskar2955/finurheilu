@@ -1,0 +1,60 @@
+# Run the whole FinUrheilu stack on your own computer with one command:
+#   docker compose up --build
+# Then open http://localhost:3000 (reader app) and http://localhost:3000/newsroom (password: kaleva)
+#
+# Uses the free demo writer by default. For real AI, put a key in a .env file next to this file:
+#   AI_PROVIDER=gemini
+#   GEMINI_API_KEY=your-key
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fu
+    ports: ["5432:5432"]
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      # Run once, in order, when the database is first created:
+      - ./dev/supabase_stub.sql:/docker-entrypoint-initdb.d/01_supabase_stub.sql:ro
+      - ./supabase/migrations/20261025000000_schema.sql:/docker-entrypoint-initdb.d/02_schema.sql:ro
+      - ./dev/grants.sql:/docker-entrypoint-initdb.d/03_grants.sql:ro
+      - ./supabase/seed.sql:/docker-entrypoint-initdb.d/04_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fu"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  worker:
+    build: ./worker
+    environment:
+      DATABASE_URL: host=db port=5432 user=postgres password=postgres dbname=fu
+      WORKER_TOKEN: local-dev-token
+      AI_PROVIDER: ${AI_PROVIDER:-demo}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      MEDIA_DIR: /media
+      PUBLIC_BASE_URL: http://localhost:8000
+    ports: ["8000:8000"]
+    volumes:
+      - media:/media
+    depends_on:
+      db: { condition: service_healthy }
+
+  web:
+    build: ./web
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/fu
+      NEWSROOM_PASSWORD: ${NEWSROOM_PASSWORD:-kaleva}
+      WORKER_URL: http://worker:8000
+      WORKER_TOKEN: local-dev-token
+    ports: ["3000:3000"]
+    depends_on:
+      db: { condition: service_healthy }
+      worker: { condition: service_started }
+
+volumes:
+  dbdata:
+  media:
