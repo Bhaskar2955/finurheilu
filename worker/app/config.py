@@ -8,6 +8,12 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 MODEL_WRITER = os.environ.get("CLAUDE_MODEL_WRITER", "claude-sonnet-5-5")
 MODEL_FAST = os.environ.get("CLAUDE_MODEL_FAST", "claude-haiku-5-5")
 
+# Which AI writes: "claude", "gemini" (free tier) or "demo" (no AI, no key).
+# Empty = use whichever key is set, else demo.
+AI_PROVIDER = os.environ.get("AI_PROVIDER", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+
 # Shared secret between the Next.js server and this worker.
 WORKER_TOKEN = os.environ.get("WORKER_TOKEN", "")
 

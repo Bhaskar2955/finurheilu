@@ -7,7 +7,7 @@ from typing import Any
 from . import config, db
 from .factcheck import check_claims, stray_numbers
 from .facts import build_facts, fact_map
-from .llm import get_llm
+from .llm import get_llm, writer_model
 
 LANGS = ["fi", "sv", "en"]
 STYLES = ["quick", "full", "fan"]
@@ -82,7 +82,7 @@ def build_prompt(g: dict, facts: list, styles: list[str], fan_name: str,
 def run_summary(game_id: str, instruction: str | None = None, author_note: str | None = None) -> str:
     llm = get_llm()
     with db.conn() as c:
-        job = db.job_start(c, game_id, "rewrite" if instruction else "summary", config.MODEL_WRITER, author_note)
+        job = db.job_start(c, game_id, "rewrite" if instruction else "summary", writer_model(), author_note)
         try:
             g = db.fetch_game(c, game_id)
             facts = build_facts(g)
@@ -98,7 +98,7 @@ def run_summary(game_id: str, instruction: str | None = None, author_note: str |
                                  (item_row["current_version_id"],)).fetchall()
                 previous = {f"{r['language']}/{r['style']}": r["text"] for r in rows}
 
-            data, usage = llm.call_tool(config.MODEL_WRITER, SYSTEM,
+            data, usage = llm.call_tool(writer_model(), SYSTEM,
                                         build_prompt(g, facts, styles, fan_name, previous, instruction),
                                         report_tool(styles))
 
@@ -110,7 +110,7 @@ def run_summary(game_id: str, instruction: str | None = None, author_note: str |
             live = " · live update" if g["status"] == "live" else " · match report"
             title = f"{g['home_name']} {g['home_score']}–{g['away_score']} {g['away_name']}{live}"
             item_id = db.upsert_item(c, game_id, "summary", title, fan_team_id=fan_id)
-            vid = db.new_version(c, item_id, f"ai:{config.MODEL_WRITER}", job,
+            vid = db.new_version(c, item_id, f"ai:{writer_model()}", job,
                                  {"headline": data.get("headline", {}), "facts": [f.dict() for f in facts],
                                   "instruction": instruction},
                                  note=f"Editor asked: {instruction}" if instruction else None)

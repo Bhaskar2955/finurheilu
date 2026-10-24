@@ -64,7 +64,9 @@ def rewrite_summary(game_id: str, instruction: str | None) -> None:
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "claude": bool(config.ANTHROPIC_API_KEY), "voices": bool(config.AZURE_SPEECH_KEY),
+    from .llm import provider, writer_model
+    return {"ok": True, "ai": provider(), "model": writer_model(), "claude": bool(config.ANTHROPIC_API_KEY),
+            "voices": bool(config.AZURE_SPEECH_KEY),
             "storage": "supabase" if config.SUPABASE_URL else "local"}
 
 

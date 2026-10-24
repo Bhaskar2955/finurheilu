@@ -8,7 +8,7 @@ import tempfile
 from . import config, db, storage, tts
 from .factcheck import stray_numbers
 from .facts import build_facts, fact_map
-from .llm import get_llm
+from .llm import get_llm, writer_model
 
 LANGS = ["fi", "sv", "en"]
 HOSTS = {"fi": ("Aino", "Eero"), "sv": ("Saga", "Erik"), "en": ("Aino", "Eero")}
@@ -52,7 +52,7 @@ def duration_s(mp3: bytes) -> int | None:
 def run_podcast(game_id: str, instruction: str | None = None) -> str:
     llm = get_llm()
     with db.conn() as c:
-        job = db.job_start(c, game_id, "podcast", config.MODEL_WRITER, instruction)
+        job = db.job_start(c, game_id, "podcast", writer_model(), instruction)
         try:
             g = db.fetch_game(c, game_id)
             facts = build_facts(g)
@@ -70,12 +70,12 @@ def run_podcast(game_id: str, instruction: str | None = None) -> str:
                       f"Host names per language: {names}.\n")
             if instruction:
                 prompt += f"\nThe editor asks for this change: {instruction}\n"
-            data, usage = llm.call_tool(config.MODEL_WRITER, SYSTEM, prompt, TOOL)
+            data, usage = llm.call_tool(writer_model(), SYSTEM, prompt, TOOL)
 
             strays = stray_numbers([ln["text"] for l in LANGS for ln in data[l]["lines"]], fact_map(facts))
             title = f"Podcast · {g['home_name']} {g['home_score']}–{g['away_score']} {g['away_name']}"
             item_id = db.upsert_item(c, game_id, "podcast", title, depends_on=str(summ["id"]))
-            vid = db.new_version(c, item_id, f"ai:{config.MODEL_WRITER}", job,
+            vid = db.new_version(c, item_id, f"ai:{writer_model()}", job,
                                  {"titles": {l: data[l]["title"] for l in LANGS}, "hosts": HOSTS,
                                   "voices": tts.VOICES if tts.enabled() else None,
                                   "stray_numbers": strays})

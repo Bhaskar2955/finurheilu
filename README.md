@@ -30,9 +30,22 @@ Liiga data ──► Python AI worker ──► drafts in Postgres ──► New
 To use real games, send them to the worker's `/import/game` endpoint (format in `worker/app/liiga.py`).
 Liiga video belongs to the league and its broadcasters: only set `video_source_url` for footage you have rights to.
 
+## No AI credit? Pick a free writer
+
+The worker's `AI_PROVIDER` setting decides who writes the texts:
+
+| `AI_PROVIDER` | Cost | Key needed | Quality |
+|---|---|---|---|
+| `demo` (default in render.yaml) | Free forever | None | Plain template texts from the Liiga data, in fi/sv/en. Every fact is real. The first draft has one deliberate shot-count mistake so the fact check has something to catch (`DEMO_MISTAKE=0` turns it off). |
+| `gemini` | Free tier | `GEMINI_API_KEY` from aistudio.google.com (no card) | Real AI writing. Free-tier limits apply; check Google's current terms. |
+| `claude` | Paid (a few cents per game) | `ANTHROPIC_API_KEY` | Best Finnish and Swedish. |
+
+You can switch any time in Render → Environment; the worker restarts in a minute. `/health` shows which one is active.
+Hackathons often hand out AI credits, so ask the JunctionX organisers too.
+
 ## Put it online (about 20 minutes)
 
-You need free accounts on GitHub, Supabase, Render and Vercel, plus an Anthropic API key. Azure Speech is optional.
+You need free accounts on GitHub, Supabase, Render and Vercel. An AI key is optional (see above). Azure Speech is optional.
 
 ### 1. Supabase (database)
 1. Create a project, region **EU North (Stockholm)**. Save the database password.
@@ -45,8 +58,8 @@ Make a long random string, for example at https://www.random.org/strings/ or `op
 
 ### 3. Render (AI worker)
 1. **New → Blueprint**, pick this repo. Render reads `render.yaml`.
-2. Fill in: `DATABASE_URL`, `WORKER_TOKEN`, `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and optionally `AZURE_SPEECH_KEY` (region `northeurope`).
-3. When it's live, open `https://<your-worker>.onrender.com/health`. You should see `"ok": true, "claude": true`.
+2. Fill in: `DATABASE_URL`, `WORKER_TOKEN`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. Leave the AI keys empty to use the free demo writer, or add `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` and set `AI_PROVIDER`. `AZURE_SPEECH_KEY` is optional.
+3. When it's live, open `https://<your-worker>.onrender.com/health`. You should see `"ok": true` and `"ai": "demo"` (or `gemini` / `claude`).
 
 The free plan sleeps after 15 minutes without traffic; the first request then takes ~1 minute. Open `/health` before a demo.
 
@@ -68,7 +81,7 @@ Needs Docker or a local Postgres 16, Python 3.12, Node 20 and FFmpeg.
 # database (local Postgres on port 5433 here; adjust PGHOST/PGPORT)
 PGHOST=localhost PGPORT=5432 dev/reset_db.sh
 
-# worker with a FAKE Claude (no API key needed) – or use uvicorn app.main:app with a real key
+# worker with the free demo writer (no API key needed) – or uvicorn app.main:app with AI_PROVIDER/keys set
 cd worker && pip install -r requirements.txt
 DATABASE_URL="host=localhost port=5432 user=postgres dbname=fu" WORKER_TOKEN=dev python ../dev/fake_ai.py
 
