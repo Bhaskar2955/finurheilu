@@ -7,6 +7,7 @@
  *   GET  /api/highlights    Liiga goal clips from recent games (?team=Kärpät&games=5)
  *   GET  /api/ai/status     which writer is active (demo or gemini)
  *   POST /api/ai/rewrite    rewrite a fact-checked story with Gemini
+ *   GET  /api/videos?team=  your own videos from media/videos/<team>/ on this computer
  *   POST /api/tts           Azure AI Speech audio (mp3) for podcast and video voices
  * In production it also serves the built React app from ../client/dist.
  */
@@ -17,6 +18,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { aiStatus, rewrite } from "./ai.js";
 import { synthesize, ttsStatus, type TtsLine } from "./tts.js";
+import { VIDEOS_DIR, ensureVideoDir, localVideos } from "./videos.js";
 import { APPWRITE, appwriteReady } from "./appwrite.js";
 import { gameDetail, getBundle, highlights, liveDay, syncState } from "./data.js";
 import { LIIGA_BASE, todayHelsinki } from "./liiga.js";
@@ -94,6 +96,18 @@ app.post("/api/tts", async (req: Request, res: Response) => {
   } catch (e) {
     console.warn("TTS:", (e as Error).message);
     res.status(503).json({ error: (e as Error).message });
+  }
+});
+
+// Your own video files (see src/videos.ts). express.static supports seeking (range requests).
+ensureVideoDir();
+app.use("/media/videos", express.static(VIDEOS_DIR, { fallthrough: false, index: false, dotfiles: "ignore", maxAge: "1h" }));
+app.get("/api/videos", (req: Request, res: Response) => {
+  const team = typeof req.query.team === "string" && req.query.team.length < 40 ? req.query.team : null;
+  try {
+    res.set("cache-control", "no-store").json({ videos: localVideos(team) });
+  } catch (e) {
+    res.status(500).json({ videos: [], error: (e as Error).message });
   }
 });
 

@@ -193,7 +193,31 @@ Without a key, podcasts and video voice-overs use the device's own voices. With 
 
 The key stays on the server. The browser calls `POST /api/tts`, and the server asks Azure for an MP3 and keeps a small cache, so replaying the same podcast doesn't use characters again. If Azure fails, the app falls back to device voices.
 
-## 9. Troubleshooting
+## 9. Your own videos (from this computer)
+
+Put video files in `app2/server/media/videos/<team>/` and they appear under **Team videos** in that team's Video section after a page refresh. You don't need to restart.
+
+```
+app2/server/media/videos/
+  karpat/kooste-24-10.mp4     ← shown for Kärpät
+  karpat/kooste-24-10.jpg     ← optional thumbnail (same name)
+  karpat/videos.json          ← optional titles: { "kooste-24-10.mp4": { "title": "Kärpät – HIFK: maalikooste" } }
+  league/viikon-parhaat.mp4   ← shown for every team
+```
+
+- **Folder names:** the team name in lower case, with ä/ö as a/o and spaces as `-`: `karpat`, `tappara`, `hifk`, `assat`, `k-espoo`, `kookoo`, `jyp`…
+- **Formats:** `.mp4` (H.264 plays everywhere), `.webm`, `.m4v` and `.mov` (Safari only).
+- **Storage:** files stay on your computer and are not committed to git. Use `VIDEOS_DIR=/path/to/folder` in `server/.env` to keep them somewhere else.
+
+## 10. Playoff chances
+
+**Home → Playoff chances** shows each team's chance to make the playoffs (top 12), reach the quarter-finals, the semi-finals and the final. Your teams are shown first, and **Show all** lists the whole league.
+
+- **How it's worked out:** the model (`client/src/lib/odds.ts`) plays the rest of the season 4,000 times. It uses points per game from the Liiga table and the remaining schedule, a small home advantage, and overtime games worth 2–1 points.
+- **Playoff format it uses:** places 1–4 go straight to the quarter-finals, 5–12 play best-of-5 qualifiers, and the later rounds are best of 7.
+- **Labels:** the card says it's a model estimate and not betting advice.
+
+## 11. Troubleshooting
 
 | Problem | Fix |
 |---|---|

@@ -9,7 +9,8 @@ import { C, DEMO_R, NL, ctx, fDate, juniorLead, juniorLine, leagueLine, plain, s
 import { TODAY, dayName, isPrem, nextGame, posOf, teamRes, tf, weekFrom } from "../lib/util";
 import { AdCard, AutoItem, McCard, Scoreboard, StoryBody, Teaser, openGame } from "../components/cards";
 import { Crest, Html, Icon, Lock, Seg, Toks, openPaywall } from "../components/ui";
-import { ClipScene, ClipStrip } from "../components/clips";
+import { ClipScene, ClipStrip, VideoStrip } from "../components/clips";
+import { PlayoffOdds } from "../components/odds";
 import { useClips, type Clip } from "../lib/highlights";
 
 export function Home() {
@@ -34,6 +35,7 @@ export function Home() {
           <p className="small muted">{x.demo}</p>
         </>
       )}
+      <PlayoffOdds />
       <div style={{ marginTop: 12 }}>
         <Seg items={[["teams", x.feedTeams], ["league", x.feedLeague], ["town", x.feedTown]]} value={a.feedSeg}
           onPick={(k) => act((st) => { st.feedSeg = k; try { localStorage.setItem("fu2.feed", JSON.stringify(k)); } catch { /* ignore */ } })} />
@@ -236,6 +238,7 @@ export function VideoBlock({ tm }: { tm: string }) {
   return (
     <>
       <Reel id={id} scenes={scenes} vo={vo} color={T[tm]?.col} cap={x.shortCap} share={tm} short durs={durs} />
+      <VideoStrip team={tm} />
       <ClipStrip team={tm} />
     </>
   );

@@ -1,3 +1,11 @@
 node_modules
 dist
 .env
+media/videos/**/*.mp4
+media/videos/**/*.m4v
+media/videos/**/*.webm
+media/videos/**/*.mov
+media/videos/**/*.jpg
+media/videos/**/*.jpeg
+media/videos/**/*.png
+media/videos/**/*.webp

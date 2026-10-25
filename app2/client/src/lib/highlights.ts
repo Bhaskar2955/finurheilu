@@ -6,6 +6,8 @@ export interface Clip {
   key: string; liigaId: number; d: string; h: string; a: string; hs: number; as: number; x: string;
   team: string; home: boolean; min: number; period: number; score: string; scorer: string | null;
   clip: string; thumb: string | null; types?: string[];
+  /** "local" = your own video from the server's media/videos folder (title instead of a goal). */
+  kind?: "liiga" | "local"; title?: string;
 }
 interface Entry { state: "loading" | "ok" | "error"; clips: Clip[]; source: string; at: number }
 
@@ -83,4 +85,33 @@ export function attachClip(v: HTMLVideoElement, url: string, onfail: () => void)
     v.play().catch(() => { /* autoplay blocked */ });
   }
   return () => { gone = true; try { hls?.destroy(); } catch { /* ignore */ } v.pause(); v.removeAttribute("src"); v.load(); };
+}
+
+/* ---------- your own videos (server folder media/videos/<team>/) ---------- */
+interface VEntry { state: "loading" | "ok" | "error"; videos: Clip[]; at: number }
+const vcache: Record<string, VEntry> = {};
+function loadVideos(team: string) {
+  const prev = vcache[team];
+  vcache[team] = { state: prev?.videos.length ? "ok" : "loading", videos: prev?.videos ?? [], at: Date.now() };
+  fetch(`/api/videos?team=${encodeURIComponent(team)}`)
+    .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then((d: { videos: { key: string; team: string; title: string; url: string; thumb: string | null; d: string }[] }) => {
+      vcache[team] = {
+        state: "ok", at: Date.now(),
+        videos: (d.videos ?? []).map((v) => ({
+          key: "v:" + v.key, kind: "local", title: v.title, liigaId: 0, d: v.d, h: "", a: "", hs: 0, as: 0, x: "",
+          team: v.team || team, home: true, min: 0, period: 0, score: "", scorer: null, clip: v.url, thumb: v.thumb,
+        })),
+      };
+      emit();
+    })
+    .catch(() => { vcache[team] = { state: "error", videos: prev?.videos ?? [], at: Date.now() }; emit(); });
+}
+/** Your own videos for a team; read again when the section is shown (at most every 30 s), so new files appear after a refresh. */
+export function useLocalVideos(team: string): VEntry {
+  useEffect(() => {
+    const e = vcache[team];
+    if (!e || (e.state !== "loading" && Date.now() - e.at > 30_000)) loadVideos(team);
+  }, [team]);
+  return vcache[team] ?? { state: "loading", videos: [], at: 0 };
 }
