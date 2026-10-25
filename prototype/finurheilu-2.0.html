@@ -532,7 +532,7 @@ textarea.notes{width:100%;min-height:84px;margin:8px 0;border-radius:10px;border
 .junior{border-style:dashed}
 .kalbtn{background:#0055a4;color:#fff;margin-top:10px}
 
-/* ===== team videos + playoff chances (from app2) ===== */
+/* ===== clip player styles + playoff chances (from app2) ===== */
 /* ===== Liiga goal clips ===== */
 .clips{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:12px}
 .cliprow{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 6px;scrollbar-width:thin}
@@ -571,9 +571,6 @@ textarea.notes{width:100%;min-height:84px;margin:8px 0;border-radius:10px;border
 .od.odm span{font-weight:800;color:var(--ink)}
 @media (min-width:760px){.odt{font-size:14px}.od span{min-width:56px}.odt td.otm b{max-width:none}}
 
-.clipx{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;font-size:13px;display:grid;place-items:center;z-index:2}
-.addvid{align-self:flex-start;flex:0 0 140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;aspect-ratio:16/9;border-radius:12px;border:1.5px dashed var(--blue);background:transparent;color:var(--ink);cursor:pointer;font:inherit;font-weight:600;font-size:13px;padding:8px;text-align:center}
-.addvid b{font-size:24px;line-height:1;color:var(--blue)}
 .nw{white-space:nowrap}
 </style>
 
@@ -718,20 +715,17 @@ sv:{toFreeBtn:"Byt till gratisabonnemanget",register:"Skapa konto",regSub:"Grati
  ads:{mtv:["Varje Liiga-match live","Se på MTV Katsomo+ Urheilu.","Se"],continental:["Grepp på vintervägar","Continentals vinterdäck för finska förhållanden.","Läs mer"],iloq:["Nyckellös låsning från Uleåborg","iLOQ:s digitala lås behöver inga batterier i låset.","Läs mer"],veikkaus:["Veikkaus stöder finsk idrott","Endast 18+. Spela måttligt.","veikkaus.fi"]},
  contSp:"Tävlingen Nästa mål presenteras av Continental",contPrize:"Veckans pris: 2 biljetter till en hemmamatch (exempel). Sponsorer påverkar inte våra nyheter."}};
 Object.keys(S2).forEach(k=>Object.assign(S[k],S2[k]));
-/* ---------- team videos from this device + playoff chances ---------- */
+/* ---------- playoff chances ---------- */
 const S_VO={
-en:{vidH:"Team videos",vidSub:"Add videos from this device. They are saved only in this browser.",vidAdd:"Add video",vidWatch:"Watch video",vidDel:"Remove video",vidSaved:"Video added",vidNoStore:"This browser can't save videos, so it plays only until you reload.",close2:"Close",
- odH:"Playoff chances",odSub:"Each team's chance to reach each round",odTeam:"Team",odPlayoffs:"Playoffs",odPlayoffsT:"Top 12: qualifiers or straight to the quarter-finals",odQf:"Quarters",odQfT:"Top 4, or wins its qualifier series",odSf:"Semis",odFinal:"Final",
+en:{odH:"Playoff chances",odSub:"Each team's chance to reach each round",odTeam:"Team",odPlayoffs:"Playoffs",odPlayoffsT:"Top 12: qualifiers or straight to the quarter-finals",odQf:"Quarters",odQfT:"Top 4, or wins its qualifier series",odSf:"Semis",odFinal:"Final",
  odAll:n=>`Show all ${n} teams`,odMine:"Show my teams",
  odFormat:"Places 1–4 go straight to the quarter-finals, 5–12 play the qualifiers (best of 5), and 13th and below are out. Quarter-finals, semi-finals and the final are best of 7.",
  odHow:(n,g)=>`Model estimate from ${n} simulated seasons, using points per game and the ${g} games left in the schedule. Not a Liiga forecast or betting advice.`},
-fi:{vidH:"Joukkueen videot",vidSub:"Lisää videoita tältä laitteelta. Ne tallentuvat vain tähän selaimeen.",vidAdd:"Lisää video",vidWatch:"Katso video",vidDel:"Poista video",vidSaved:"Video lisätty",vidNoStore:"Tämä selain ei voi tallentaa videoita, joten video toimii vain sivun uudelleenlataukseen asti.",close2:"Sulje",
- odH:"Pudotuspelimahdollisuudet",odSub:"Joukkueiden todennäköisyys edetä kullekin kierrokselle",odTeam:"Joukkue",odPlayoffs:"Pudotus\u00ADpelit",odPlayoffsT:"Sijat 1–12: pudotuspelikarsinta tai suoraan puolivälieriin",odQf:"Puoli\u00ADvälierät",odQfT:"Sijat 1–4 tai voitto karsintasarjassa",odSf:"Väli\u00ADerät",odFinal:"Finaali",
+fi:{odH:"Pudotuspelimahdollisuudet",odSub:"Joukkueiden todennäköisyys edetä kullekin kierrokselle",odTeam:"Joukkue",odPlayoffs:"Pudotus\u00ADpelit",odPlayoffsT:"Sijat 1–12: pudotuspelikarsinta tai suoraan puolivälieriin",odQf:"Puoli\u00ADvälierät",odQfT:"Sijat 1–4 tai voitto karsintasarjassa",odSf:"Väli\u00ADerät",odFinal:"Finaali",
  odAll:n=>`Näytä kaikki ${n} joukkuetta`,odMine:"Näytä omat joukkueet",
  odFormat:"Sijat 1–4 pääsevät suoraan puolivälieriin, sijat 5–12 pelaavat pudotuspelikarsinnan (kolmeen voittoon), ja sijat 13– jäävät ulos. Puolivälierät, välierät ja finaali pelataan neljään voittoon.",
  odHow:(n,g)=>`Mallin arvio ${n} simuloidusta kaudesta: pisteet per ottelu ja ohjelman ${g} jäljellä olevaa ottelua. Ei Liigan ennuste eikä vedonlyöntineuvo.`},
-sv:{vidH:"Lagets videor",vidSub:"Lägg till videor från den här enheten. De sparas bara i den här webbläsaren.",vidAdd:"Lägg till video",vidWatch:"Se videon",vidDel:"Ta bort videon",vidSaved:"Video tillagd",vidNoStore:"Den här webbläsaren kan inte spara videor, så videon fungerar bara tills du laddar om sidan.",close2:"Stäng",
- odH:"Slutspelschanser",odSub:"Varje lags chans att nå varje omgång",odTeam:"Lag",odPlayoffs:"Slut\u00ADspel",odPlayoffsT:"Plats 1–12: kvalserie eller direkt till kvartsfinal",odQf:"Kvarts\u00ADfinal",odQfT:"Plats 1–4 eller vinst i kvalserien",odSf:"Semi\u00ADfinal",odFinal:"Final",
+sv:{odH:"Slutspelschanser",odSub:"Varje lags chans att nå varje omgång",odTeam:"Lag",odPlayoffs:"Slut\u00ADspel",odPlayoffsT:"Plats 1–12: kvalserie eller direkt till kvartsfinal",odQf:"Kvarts\u00ADfinal",odQfT:"Plats 1–4 eller vinst i kvalserien",odSf:"Semi\u00ADfinal",odFinal:"Final",
  odAll:n=>`Visa alla ${n} lag`,odMine:"Visa mina lag",
  odFormat:"Plats 1–4 går direkt till kvartsfinal, plats 5–12 spelar kvalserie (bäst av 5) och plats 13 och nedåt är ute. Kvartsfinal, semifinal och final avgörs i bäst av 7.",
  odHow:(n,g)=>`Modellens uppskattning från ${n} simulerade säsonger, utifrån poäng per match och de ${g} matcher som återstår i schemat. Ingen prognos från Liiga och inget spelråd.`}};
@@ -1909,7 +1903,7 @@ function videoBlock(tm){const x=s();const st=story(tm,{len:"short",tone:P.tone==
  const vo=[plain(st.title),...st.body.map(plain),st.why?plain(st.why):""].filter(Boolean).join(". ").replace(/[.!]\./g,m=>m[0]);
  return `<div class="shortwrap"><div class="reel short" data-reel="sv:${esc(tm)}" data-n="${sc.length}" data-vo="${esc(vo)}" style="--ra:${T[tm].col}" role="button" aria-label="${esc(x.play)}"><div class="bars">${sc.map((_,i)=>`<i class="${i?"":"on"}"><b></b></i>`).join("")}</div>
   <span class="bd">${esc(x.shortCap)}</span>${sc.map((z,i)=>`<div class="scene ${i?"":"on"}">${z}</div>`).join("")}${fsBtn()}<div class="ov"><span>${IC.play.replace("<svg",'<svg width="24" height="24"')}</span></div></div>
-  <div class="row"><button class="smallbtn" data-share="${esc(tm)}">${esc(x.share)} ↗</button><span class="small muted">${esc(x.madeFrom)}</span></div></div>${vidStrip(tm)}`}
+  <div class="row"><button class="smallbtn" data-share="${esc(tm)}">${esc(x.share)} ↗</button><span class="small muted">${esc(x.madeFrom)}</span></div></div>`}
 function pauseReel(id){const r=reels[id];if(!r)return;clearTimeout(r.t);const was=r.on;r.on=false;const el=document.querySelector(`[data-reel="${id}"]`);if(el){el.classList.remove("playing");if(was&&el.dataset.vo)try{speechSynthesis.cancel()}catch(e){}}}
 function toggleReel(id){const r=reels[id]||(reels[id]={i:0,on:false});if(r.on){pauseReel(id);return}stopReels(id);stopPod();
  const el=document.querySelector(`[data-reel="${id}"]`);const n=+el.dataset.n;if(r.i>=n)r.i=0;r.on=true;el.classList.add("playing");showScene(id,r.i);
@@ -1958,36 +1952,6 @@ function oddsCard(){const x=s();const res=playoffOdds();if(!res)return"";
   <button type="button" class="link" data-oddsall>${esc(oddsAll?x.odMine:x.odAll(res.rows.length))}</button>
   <p class="small muted" style="margin:0">${esc(x.odFormat)}</p><p class="small muted" style="margin:0">${esc(x.odHow(OD.sims.toLocaleString(P.lang==="en"?"en-GB":"fi-FI"),res.games))}</p></div>`}
 
-/* ======================= TEAM VIDEOS from this device (kept in this browser's IndexedDB) ======================= */
-const myVids={list:[],urls:{},db:null,ok:true};
-function vidDb(){return new Promise((ok,bad)=>{if(myVids.db)return ok(myVids.db);try{const r=indexedDB.open("fu2-videos",1);
- r.onupgradeneeded=()=>{r.result.createObjectStore("v",{keyPath:"id"})};r.onsuccess=()=>{myVids.db=r.result;ok(r.result)};r.onerror=()=>bad(r.error)}catch(e){bad(e)}})}
-function vidUrl(v){return myVids.urls[v.id]||(myVids.urls[v.id]=URL.createObjectURL(v.blob))}
-async function loadVids(){try{const db=await vidDb();const all=await new Promise((ok,bad)=>{const q=db.transaction("v").objectStore("v").getAll();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>bad(q.error)});
- myVids.list=all.sort((a,b)=>b.at-a.at);if(myVids.list.length)render()}catch(e){myVids.ok=false}}
-async function addVids(team,files){const x=s();let saved=false;
- for(const f of files){if(!f||!/^video\//.test(f.type||"")&&!/\.(mp4|m4v|webm|mov)$/i.test(f.name))continue;
-  const v={id:"v"+Date.now()+Math.random().toString(36).slice(2,6),team,title:f.name.replace(/\.[^.]+$/,"").replace(/[-_]+/g," ").trim()||f.name,at:Date.now(),blob:f};
-  myVids.list.unshift(v);
-  try{const db=await vidDb();await new Promise((ok,bad)=>{const t=db.transaction("v","readwrite");t.objectStore("v").put(v);t.oncomplete=ok;t.onerror=()=>bad(t.error)});saved=true}catch(e){myVids.ok=false}}
- toast(saved?x.vidSaved:x.vidNoStore);render()}
-async function delVid(id){myVids.list=myVids.list.filter(v=>v.id!==id);if(myVids.urls[id]){URL.revokeObjectURL(myVids.urls[id]);delete myVids.urls[id]}
- try{const db=await vidDb();db.transaction("v","readwrite").objectStore("v").delete(id)}catch(e){}render()}
-function vidStrip(tm){const x=s();const list=myVids.list.filter(v=>v.team===tm);
- return `<div class="clips"><div><div class="l">${esc(x.vidH)}</div><div class="small muted">${esc(x.vidSub)}</div></div>
-  <div class="cliprow"><label class="addvid"><b>＋</b>${esc(x.vidAdd)}<input type="file" accept="video/*" multiple data-vidfile="${esc(tm)}" hidden></label>
-  ${list.map(v=>`<div class="clipc" style="position:relative"><button type="button" class="clipc" style="flex:1 1 auto;width:100%" data-vidplay="${v.id}" aria-label="${esc(x.vidWatch)}: ${esc(v.title)}">
-   <span class="cthumb" style="--tc:${T[tm]?T[tm].col:"#2F80FF"}"><video src="${vidUrl(v)}#t=1" muted playsinline preload="metadata" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video><span class="cplay">${IC.play.replace("<svg",'<svg width="18" height="18"')}</span></span>
-   <span class="cinfo"><b>${esc(v.title)}</b><span class="small muted">${esc(fDate(new Date(v.at).toISOString().slice(0,10),P.lang))}</span></span></button>
-   <button type="button" class="clipx" data-viddel="${v.id}" aria-label="${esc(x.vidDel)}" title="${esc(x.vidDel)}">✕</button></div>`).join("")}</div></div>`}
-function playVid(id){const x=s();const v=myVids.list.find(z=>z.id===id);if(!v)return;stopPod();stopReels();closeVid();
- const m=document.createElement("div");m.className="clipm";m.id="vidm";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");
- m.innerHTML=`<div class="clipbox"><div class="cliphd">${crest(v.team,26)}<b class="grow">${esc(v.title)}</b><button type="button" class="icon sm" data-vidclose aria-label="${esc(x.close2)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-  <div class="clipv"><video controls autoplay playsinline src="${vidUrl(v)}"></video></div><div class="small muted">${esc(x.vidH)} · ${esc(v.team)}</div></div>`;
- document.body.appendChild(m);document.documentElement.style.overflow="hidden";const vv=m.querySelector("video");if(vv)vv.play().catch(()=>{})}
-function closeVid(){const m=$("#vidm");if(m){const v=m.querySelector("video");if(v)v.pause();m.remove();document.documentElement.style.overflow=""}}
-document.addEventListener("change",e=>{const el=e.target;if(el&&el.matches&&el.matches("[data-vidfile]")&&el.files&&el.files.length){addVids(el.dataset.vidfile,[...el.files]);el.value=""}});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeVid()});
 /* ---------- Home: my teams / my league / my town ---------- */
 function vHome(){const x=s();const sl=live.slot&&started()?live.slot:slot();
  const when=sl?(sl.d===TODAY?`${x.today} · ${sl.t}`:`${dayName(sl.d,{weekday:"short",day:"numeric",month:"numeric"})} · ${sl.t}`):"";
@@ -2094,9 +2058,6 @@ async function apiTest(){const x=s();if(!apiState.url){apiState.msg=x.apiFail;re
 /* ---------- v2 events (run before the original handlers) ---------- */
 function v2Click(e,q,x){let el;
  if(q("[data-oddsall]")){oddsAll=!oddsAll;render();return true}
- if(el=q("[data-viddel]")){delVid(el.dataset.viddel);return true}
- if(el=q("[data-vidplay]")){playVid(el.dataset.vidplay);return true}
- if(q("[data-vidclose]")||e.target.id==="vidm"){closeVid();return true}
  if(el=q("[data-cl]")){const cl=CLR[+el.dataset.cl];if(cl)showPop(claimPop(cl));return true}
  if(el=q("[data-fc]")){const st=FCR[el.dataset.fc];if(st)showPop(factsPop(st));return true}
  if(q("[data-popclose]")||e.target.id==="pop"){hidePop();return true}
@@ -2205,7 +2166,7 @@ document.addEventListener("submit",e=>{e.preventDefault();const x=s();
   logErr="";P.user=Object.assign({name:email.split("@")[0]},P.user||{},{email,in:true});P.screen=P.onboarded?"app":"plans";if(P.screen==="app")tab="home";save();render();window.scrollTo(0,0)}});
 try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{}}catch(e){}
 if(!["home","matches","calendar","teams","profile","newsroom","community"].includes(tab))tab="home";
-render();setTimeout(()=>{if(P.screen==="app")cmInit()},0);loadVids();
+render();setTimeout(()=>{if(P.screen==="app")cmInit()},0);
 </script>
 
 
