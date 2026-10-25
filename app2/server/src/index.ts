@@ -7,6 +7,7 @@
  *   GET  /api/highlights    Liiga goal clips from recent games (?team=Kärpät&games=5)
  *   GET  /api/ai/status     which writer is active (demo or gemini)
  *   POST /api/ai/rewrite    rewrite a fact-checked story with Gemini
+ *   POST /api/tts           Azure AI Speech audio (mp3) for podcast and video voices
  * In production it also serves the built React app from ../client/dist.
  */
 import "./env.js";
@@ -15,6 +16,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { aiStatus, rewrite } from "./ai.js";
+import { synthesize, ttsStatus, type TtsLine } from "./tts.js";
 import { APPWRITE, appwriteReady } from "./appwrite.js";
 import { gameDetail, getBundle, highlights, liveDay, syncState } from "./data.js";
 import { LIIGA_BASE, todayHelsinki } from "./liiga.js";
@@ -29,6 +31,7 @@ app.get("/api/health", async (_req: Request, res: Response) => {
     data: { mode: b.mode, source: b.source, season: b.season, fetchedAt: b.fetchedAt, note: b.note ?? null, liigaApi: LIIGA_BASE },
     appwrite: { configured: appwriteReady(), endpoint: APPWRITE.endpoint || null, database: APPWRITE.db, ...syncState },
     ai: aiStatus(),
+    tts: ttsStatus(),
   });
 });
 
@@ -66,7 +69,7 @@ app.get("/api/highlights", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/api/ai/status", (_req: Request, res: Response) => res.json(aiStatus()));
+app.get("/api/ai/status", (_req: Request, res: Response) => res.json({ ...aiStatus(), tts: ttsStatus().provider }));
 
 app.post("/api/ai/rewrite", async (req: Request, res: Response) => {
   const { lang, tone, text, facts } = req.body ?? {};
@@ -74,6 +77,22 @@ app.post("/api/ai/rewrite", async (req: Request, res: Response) => {
   try {
     res.json({ text: await rewrite({ lang: String(lang || "fi"), tone: String(tone || "neutral"), text: text.slice(0, 3000), facts: facts.map(String).slice(0, 60) }) });
   } catch (e) {
+    res.status(503).json({ error: (e as Error).message });
+  }
+});
+
+app.post("/api/tts", async (req: Request, res: Response) => {
+  const { lang, lines } = req.body ?? {};
+  if (!Array.isArray(lines) || !lines.length || lines.length > 40) return res.status(400).json({ error: "lines (1–40) are required" });
+  const clean: TtsLine[] = lines
+    .map((l: any): TtsLine => ({ voice: l?.voice === "male" ? "male" : "female", text: String(l?.text ?? "").slice(0, 600).trim() }))
+    .filter((l: TtsLine) => l.text);
+  if (!clean.length || clean.reduce((n, l) => n + l.text.length, 0) > 5000) return res.status(400).json({ error: "text is empty or too long" });
+  try {
+    const mp3 = await synthesize(clean, ["fi", "sv", "en"].includes(lang) ? lang : "fi");
+    res.set({ "content-type": "audio/mpeg", "cache-control": "private, max-age=3600" }).send(mp3);
+  } catch (e) {
+    console.warn("TTS:", (e as Error).message);
     res.status(503).json({ error: (e as Error).message });
   }
 });
@@ -87,6 +106,6 @@ if (existsSync(dist)) {
 
 const port = Number(process.env.PORT || 4000);
 app.listen(port, () => {
-  console.log(`FinUrheilu API on http://localhost:${port}  (Appwrite: ${appwriteReady() ? "on" : "off"}, AI: ${aiStatus().provider})`);
+  console.log(`FinUrheilu API on http://localhost:${port}  (Appwrite: ${appwriteReady() ? "on" : "off"}, AI: ${aiStatus().provider}, voices: ${ttsStatus().provider})`);
   getBundle().then((b) => console.log(`Liiga data: ${b.mode} (${b.source})${b.note ? " – " + b.note : ""}`));
 });

@@ -57,3 +57,30 @@ export function loadHls(): Promise<any> {
   }
   return hlsP;
 }
+
+/**
+ * Plays a clip URL in a <video>: MP4/WebM directly, HLS natively (Safari) or through hls.js.
+ * Returns a cleanup function. onfail runs when the clip can't be played.
+ */
+export function attachClip(v: HTMLVideoElement, url: string, onfail: () => void): () => void {
+  let hls: any = null;
+  let gone = false;
+  const isHls = /\.m3u8(\?|#|$)/i.test(url);
+  if (isHls && !v.canPlayType("application/vnd.apple.mpegurl")) {
+    loadHls()
+      .then((Hls) => {
+        if (gone) return;
+        if (!Hls.isSupported()) { onfail(); return; }
+        hls = new Hls();
+        hls.on(Hls.Events.ERROR, (_e: unknown, d: any) => { if (d?.fatal) onfail(); });
+        hls.loadSource(url);
+        hls.attachMedia(v);
+        v.play().catch(() => { /* autoplay blocked: controls are there */ });
+      })
+      .catch(() => !gone && onfail());
+  } else {
+    v.src = url;
+    v.play().catch(() => { /* autoplay blocked */ });
+  }
+  return () => { gone = true; try { hls?.destroy(); } catch { /* ignore */ } v.pause(); v.removeAttribute("src"); v.load(); };
+}

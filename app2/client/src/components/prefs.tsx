@@ -1,6 +1,6 @@
 /** Per-team format buttons and podcast voice picker (onboarding and profile). */
 import { act, app, s, toast } from "../lib/state";
-import { sampleVoice } from "../lib/media";
+import { sampleVoice, voiceProvider } from "../lib/media";
 import { isPrem, tf } from "../lib/util";
 import { Icon, Lock, openPaywall } from "./ui";
 
@@ -52,6 +52,7 @@ export function VoicePick() {
           <span className="link" onClick={(e) => { e.stopPropagation(); act((a) => { a.P.voice = v; }, { persist: true }); sampleVoice(); }}>▶ {x.preview}</span>
         </button>
       ))}
+      <p className="small muted" style={{ gridColumn: "1 / -1", margin: 0 }}>{voiceProvider() === "azure" ? x.voiceAz : x.voiceDev}</p>
     </div>
   );
 }

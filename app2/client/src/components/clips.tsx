@@ -1,7 +1,7 @@
 /** Liiga goal clips: a scrollable strip of clip cards, and the video player overlay. */
 import { useEffect, useRef, useState } from "react";
 import { T } from "../lib/data";
-import { closeClip, loadHls, openClip, stepClip, useClips, viewer, type Clip } from "../lib/highlights";
+import { attachClip, closeClip, openClip, stepClip, useClips, viewer, type Clip } from "../lib/highlights";
 import { stopAllMedia } from "../lib/media";
 import { app, s, useApp } from "../lib/state";
 import { fDate } from "../lib/stories";
@@ -61,26 +61,7 @@ function ClipVideo({ c }: { c: Clip }) {
     setErr(false);
     const v = ref.current;
     if (!v) return;
-    let hls: any = null;
-    let gone = false;
-    const isHls = /\.m3u8(\?|#|$)/i.test(c.clip);
-    if (isHls && !v.canPlayType("application/vnd.apple.mpegurl")) {
-      loadHls()
-        .then((Hls) => {
-          if (gone) return;
-          if (!Hls.isSupported()) { setErr(true); return; }
-          hls = new Hls();
-          hls.on(Hls.Events.ERROR, (_e: unknown, d: any) => { if (d?.fatal) setErr(true); });
-          hls.loadSource(c.clip);
-          hls.attachMedia(v);
-          v.play().catch(() => { /* autoplay blocked: controls are there */ });
-        })
-        .catch(() => !gone && setErr(true));
-    } else {
-      v.src = c.clip;
-      v.play().catch(() => { /* autoplay blocked */ });
-    }
-    return () => { gone = true; try { hls?.destroy(); } catch { /* ignore */ } v.removeAttribute("src"); v.load(); };
+    return attachClip(v, c.clip, () => setErr(true));
   }, [c.clip]);
   return (
     <>
@@ -133,5 +114,28 @@ export function ClipPlayer() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** A scene inside the data video: the Liiga goal clip plays muted while that scene is on screen. */
+export function ClipScene({ c, active }: { c: Clip; active: boolean }) {
+  const x = s();
+  const ref = useRef<HTMLVideoElement>(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !active || err) return;
+    v.muted = true;
+    return attachClip(v, c.clip, () => setErr(true));
+  }, [active, c.clip, err]);
+  return (
+    <>
+      <div className="clipscene">
+        {!err && <video ref={ref} muted playsInline loop poster={c.thumb ?? undefined} onError={() => setErr(true)} />}
+        {err && (c.thumb ? <img src={c.thumb} alt="" /> : <Crest name={c.team} size={60} />)}
+      </div>
+      <div className="cap">{x.clipScene} · {c.min}' · {c.score}</div>
+      <div className="cap">{c.scorer ?? c.team}</div>
+    </>
   );
 }

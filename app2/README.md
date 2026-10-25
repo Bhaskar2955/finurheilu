@@ -64,6 +64,9 @@ APPWRITE_API_KEY=<the secret from step 2.4>
 APPWRITE_DATABASE_ID=finurheilu
 GEMINI_API_KEY=
 # GEMINI_API_KEY is optional, see section 7
+AZURE_SPEECH_KEY=
+AZURE_SPEECH_REGION=northeurope
+# The two AZURE values are optional, see section 8
 ```
 
 `client/.env` (same endpoint and project, **no key**):
@@ -141,7 +144,7 @@ liiga.fi API ──► Node server (server/src/liiga.ts) ──► Appwrite tabl
 - The **Profile → Liiga data** section shows which source is in use, and its **Refresh** button forces a new fetch.
 - **`/api/live?date=YYYY-MM-DD`**: today's scores and goals. The app polls it every 30 seconds, so real games in progress show "LIVE" scores.
 - **`/api/game/:id`**: period scores and goal scorers for one game, shown in the game detail, with a ▶ button on goals that have a Liiga clip.
-- **`/api/highlights?team=Kärpät`**: Liiga's own goal clips from the team's last 5 games, shown under the video in the Video section (Premium). Liiga publishes them as `videoClipUrl` and `videoThumbnailUrl` on each goal, usually a few hours after the game. MP4 clips play directly; HLS streams play natively in Safari, and in other browsers through hls.js, loaded from a CDN. If a clip can't play, the app links to it on Liiga's server. Clips are streamed from Liiga's server and never copied or stored. In sample mode there are no clips.
+- **`/api/highlights?team=Kärpät`**: Liiga's own goal clips from the team's last 5 games, shown under the video in the Video section (Premium). The team's latest goal clip from its last game also plays, muted, as scene 2 of the data video itself. Liiga publishes them as `videoClipUrl` and `videoThumbnailUrl` on each goal, usually a few hours after the game. MP4 clips play directly; HLS streams play natively in Safari, and in other browsers through hls.js, loaded from a CDN. If a clip can't play, the app links to it on Liiga's server. Clips are streamed from Liiga's server and never copied or stored. In sample mode there are no clips.
 - **`npm run sync`**: refreshes Appwrite on demand, for example once a day.
 - `DATA_MODE` in `server/.env` sets where the data comes from:
   - `auto` (default): live, then Appwrite, then sample;
@@ -162,7 +165,35 @@ To let Gemini rewrite a summary in a more natural voice:
 
 A **Rewrite with Gemini** button then appears in the game summary. The rewritten text is fact-checked again, and if it changes any facts it is rejected.
 
-## 8. Troubleshooting
+## 8. Optional: Azure AI Speech voices (free tier)
+
+Without a key, podcasts and video voice-overs use the device's own voices. With Azure AI Speech, the app uses natural neural voices, one female and one male per language:
+
+| Language | Female | Male |
+|---|---|---|
+| Finnish | fi-FI-SelmaNeural | fi-FI-HarriNeural |
+| Swedish | sv-SE-SofieNeural | sv-SE-MattiasNeural |
+| English | en-GB-SoniaNeural | en-GB-RyanNeural |
+
+1. Sign in at <https://portal.azure.com>. A free Azure account works.
+2. Choose **Create a resource**, search for **Speech** and pick **Speech service** (under Azure AI services). Click **Create**.
+3. Fill in the form:
+   - Subscription: yours.
+   - Resource group: create one, for example `finurheilu`.
+   - Region: **North Europe**.
+   - Name: for example `finurheilu-speech`.
+   - Pricing tier: **Free F0**. It includes 0.5 million characters of neural voices a month.
+4. Click **Review + create**, then **Create**. When it's done, choose **Go to resource → Keys and Endpoint**.
+5. Copy **KEY 1** and the **Location/Region** (for example `northeurope`) into `server/.env`:
+   ```
+   AZURE_SPEECH_KEY=<KEY 1>
+   AZURE_SPEECH_REGION=northeurope
+   ```
+6. Restart the server. The log says `voices: azure`, and **Profile → Podcast voice** says "Natural voices by Azure AI Speech".
+
+The key stays on the server. The browser calls `POST /api/tts`, and the server asks Azure for an MP3 and keeps a small cache, so replaying the same podcast doesn't use characters again. If Azure fails, the app falls back to device voices.
+
+## 9. Troubleshooting
 
 | Problem | Fix |
 |---|---|
@@ -171,4 +202,5 @@ A **Rewrite with Gemini** button then appears in the game summary. The rewritten
 | `setup:appwrite` says *unauthorized scope* | The API key is missing a Database scope; edit the key and tick all of them |
 | Profile shows "Built-in sample data" | liiga.fi was not reachable and nothing is stored in Appwrite yet. Run `npm run sync`, or check your internet |
 | Port 4000 or 5173 is busy | Change `PORT` in `server/.env`, or run `npm run dev -- --port 5174` |
+| Podcast still uses the robot/device voice | `AZURE_SPEECH_KEY` or `AZURE_SPEECH_REGION` is wrong (the region must be the resource's, e.g. `northeurope`). The server log shows the Azure error |
 | A free account can't open podcast/video/community | That is intended: these are Premium. Choose Premium in Profile → Plan (demo payment) |

@@ -9,7 +9,8 @@ import { C, DEMO_R, NL, ctx, fDate, juniorLead, juniorLine, leagueLine, plain, s
 import { TODAY, dayName, isPrem, nextGame, posOf, teamRes, tf, weekFrom } from "../lib/util";
 import { AdCard, AutoItem, McCard, Scoreboard, StoryBody, Teaser, openGame } from "../components/cards";
 import { Crest, Html, Icon, Lock, Seg, Toks, openPaywall } from "../components/ui";
-import { ClipStrip } from "../components/clips";
+import { ClipScene, ClipStrip } from "../components/clips";
+import { useClips, type Clip } from "../lib/highlights";
 
 export function Home() {
   const a = useApp();
@@ -201,27 +202,40 @@ function PodBlock({ tm }: { tm: string }) {
 }
 
 /* ---------- data short: vertical video built only from data, with a voice-over ---------- */
+/** The team's latest goal clip from this game, if Liiga has published one. */
+function clipFor(list: Clip[], r: any, tm: string): Clip | undefined {
+  if (!r) return undefined;
+  const same = list.filter((c) => (r.liigaId ? c.liigaId === r.liigaId : c.d === r.d && c.h === r.h && c.a === r.a) && c.team === tm);
+  return same.sort((a, b) => b.min - a.min)[0];
+}
+
 export function VideoBlock({ tm }: { tm: string }) {
   useApp();
   const x = s();
+  const clipsE = useClips(tm);
   const st = story(tm, { len: "short", tone: app.P.tone === "kids" ? "kids" : "neutral" });
   if (!st) return null;
   const c = ctx(tm, app.P.lang);
   const r = c.r;
   const LT = ({ en: ["W", "L"], fi: ["V", "H"], sv: ["V", "F"] } as any)[app.P.lang];
   const W = NL[app.P.lang];
+  // Liiga's own goal clip from the last game becomes scene 2 of the video (muted, 10 s).
+  const goal = clipFor(clipsE.clips, r, tm);
+  const rs = reels["sv:" + tm];
   const scenes = [
     <><div className="cap">{x.lastGame} · {fDate(r.d, app.P.lang)}</div><div className="row" style={{ gap: 10 }}><Crest name={r.h} size={46} /><span className="big" style={{ fontSize: 44 }}>{r.hs}–{r.as}</span><Crest name={r.a} size={46} /></div><div className="cap">{plain(st.title)}</div></>,
+    goal ? <ClipScene c={goal} active={!!rs?.on && rs.i === 1} /> : null,
     <><div className="cap">{x.formL}</div><div className="fdots">{c.letters.map((w: boolean, i: number) => <i key={i} className={w ? "w" : "l"}>{w ? LT[0] : LT[1]}</i>)}</div><div className="cap">{plain(W.form(c, "neutral"))}</div></>,
     c.hasTable ? <><div className="cap">{x.tableL}</div><div className="big" style={{ fontSize: 76, color: "var(--lime)" }}>{c.pos.v}</div><div className="cap">{plain(W.why(c))}</div></> : null,
     c.ng ? <><div className="cap">{x.nextL}</div><div className="row" style={{ gap: 10 }}><Crest name={c.ng.h} size={46} /><span className="d" style={{ fontSize: 22 }}>vs</span><Crest name={c.ng.a} size={46} /></div><div className="cap">{c.nd.v} · {c.nt.v}</div></> : null,
     <><div className="big" style={{ fontSize: 34 }}>Fin<span style={{ color: "var(--lime)" }}>Urheilu</span></div><div className="cap">{x.madeFrom}</div><div className="cap">{x.labAuto}</div></>,
   ].filter(Boolean);
+  const durs = scenes.map((_, i) => (goal && i === 1 ? 10000 : undefined));
   const vo = [plain(st.title), ...st.body.map(plain), st.why ? plain(st.why) : ""].filter(Boolean).join(". ").replace(/[.!]\./g, (m) => m[0]);
   const id = "sv:" + tm;
   return (
     <>
-      <Reel id={id} scenes={scenes} vo={vo} color={T[tm]?.col} cap={x.shortCap} share={tm} short />
+      <Reel id={id} scenes={scenes} vo={vo} color={T[tm]?.col} cap={x.shortCap} share={tm} short durs={durs} />
       <ClipStrip team={tm} />
     </>
   );
@@ -230,7 +244,7 @@ export function VideoBlock({ tm }: { tm: string }) {
 const FS_LABEL: Record<string, string> = { fi: "Koko näyttö", en: "Full screen", sv: "Helskärm" };
 const FS_EXIT: Record<string, string> = { fi: "Poistu koko näytöstä", en: "Exit full screen", sv: "Avsluta helskärm" };
 
-export function Reel({ id, scenes, vo, color, cap, share, short }: { id: string; scenes: React.ReactNode[]; vo?: string; color?: string; cap: string; share?: string; short?: boolean }) {
+export function Reel({ id, scenes, vo, color, cap, share, short, durs }: { id: string; scenes: React.ReactNode[]; vo?: string; color?: string; cap: string; share?: string; short?: boolean; durs?: (number | undefined)[] }) {
   useApp();
   const x = s();
   const r = reels[id] || { i: 0, on: false, dur: 3000 };
@@ -266,12 +280,12 @@ export function Reel({ id, scenes, vo, color, cap, share, short }: { id: string;
     const rq = el?.requestFullscreen || el?.webkitRequestFullscreen;
     if (!rq) setFake(true);
     else try { rq.call(el)?.catch?.(() => setFake(true)); } catch { setFake(true); }
-    if (!r.on) toggleReel(id, scenes.length, vo);
+    if (!r.on) toggleReel(id, scenes.length, vo, durs);
   };
   const fsLabel = (isFs ? FS_EXIT : FS_LABEL)[app.P.lang] || FS_LABEL.en;
   const body = (
-    <div ref={ref} className={`reel ${short ? "short" : ""} ${r.on ? "playing" : ""} ${fake ? "fsx" : ""}`} style={{ ["--ra" as any]: color || "#2F80FF", ["--sd" as any]: r.dur + "ms" }} role="button" aria-label={x.play} onClick={() => toggleReel(id, scenes.length, vo)}>
-      <div className="bars">{scenes.map((_, i) => <i key={i + "-" + (i === r.i ? r.i + String(r.on) : "")} className={i < r.i ? "done" : i === r.i ? "on" : ""}><b /></i>)}</div>
+    <div ref={ref} className={`reel ${short ? "short" : ""} ${r.on ? "playing" : ""} ${fake ? "fsx" : ""}`} style={{ ["--ra" as any]: color || "#2F80FF", ["--sd" as any]: r.dur + "ms" }} role="button" aria-label={x.play} onClick={() => toggleReel(id, scenes.length, vo, durs)}>
+      <div className="bars">{scenes.map((_, i) => <i key={i + "-" + (i === r.i ? r.i + String(r.on) : "")} className={i < r.i ? "done" : i === r.i ? "on" : ""} style={durs?.[i] ? { ["--sd" as any]: durs[i] + "ms" } : undefined}><b /></i>)}</div>
       <span className="bd">{cap}</span>
       {!short && <><div className="ice" /><div className="rp" /></>}
       {scenes.map((z, i) => <div key={i} className={`scene ${i === r.i ? "on" : ""}`}>{z}</div>)}

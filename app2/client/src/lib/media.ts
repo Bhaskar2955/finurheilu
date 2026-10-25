@@ -14,7 +14,41 @@ function pickVoice(lang: string, gender: string) {
   return { voice: want || m[0], exact: !!want, none: false };
 }
 
-export function speak(texts: string[], onend?: () => void): boolean {
+/* ---------- Azure AI Speech (server /api/tts), with the device's own voices as the fallback ---------- */
+let azure = false;
+fetch("/api/ai/status").then((r) => r.json()).then((d) => { azure = d?.tts === "azure"; emit(); }).catch(() => { /* device voices */ });
+/** "azure" when the server has an Azure Speech key, else "device". */
+export const voiceProvider = () => (azure ? "azure" : "device");
+
+let audio: HTMLAudioElement | null = null;
+let audioUrl = "";
+let ttsReq = 0;
+function stopAudio() {
+  ttsReq++;
+  if (audio) { audio.onended = null; audio.pause(); audio.removeAttribute("src"); audio = null; }
+  if (audioUrl) { URL.revokeObjectURL(audioUrl); audioUrl = ""; }
+}
+type TtsLine = { voice: "female" | "male"; text: string };
+function playAzure(lines: TtsLine[], onend: (() => void) | undefined, onfail: () => void, onstart?: (sec: number) => void) {
+  stopAudio();
+  const my = ++ttsReq;
+  fetch("/api/tts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ lang: app.P.lang, lines }) })
+    .then((r) => (r.ok ? r.blob() : Promise.reject(r.status)))
+    .then((b) => {
+      if (my !== ttsReq) return; // stopped meanwhile
+      audioUrl = URL.createObjectURL(b);
+      const a = new Audio(audioUrl);
+      audio = a;
+      a.volume = 0.95;
+      a.onloadedmetadata = () => { if (onstart && isFinite(a.duration)) onstart(a.duration); };
+      a.onended = () => { if (audio === a) onend?.(); };
+      a.play().catch(() => { if (my === ttsReq) onfail(); });
+    })
+    .catch(() => { if (my === ttsReq) onfail(); });
+}
+const other = (v: string): "female" | "male" => (v === "female" ? "male" : "female");
+
+function deviceSpeak(texts: string[], onend?: () => void): boolean {
   const lang = SPK[app.P.lang];
   try {
     speechSynthesis.cancel();
@@ -32,8 +66,20 @@ export function speak(texts: string[], onend?: () => void): boolean {
   } catch { return false; }
 }
 
+/** Read texts in the chosen voice: Azure neural voice when available, else the device voice. */
+export function speak(texts: string[], onend?: () => void, onstart?: (sec: number) => void): boolean {
+  stopAudio();
+  try { speechSynthesis.cancel(); } catch { /* no speech */ }
+  const t = texts.filter(Boolean);
+  if (azure && t.length) {
+    playAzure(t.map((text) => ({ voice: app.P.voice === "male" ? "male" : "female", text })), onend, () => deviceSpeak(t, onend), onstart);
+    return true;
+  }
+  return deviceSpeak(t, onend);
+}
+
 export interface Line { h: 0 | 1; t: string }
-function speakLines(lines: Line[], onend?: () => void): boolean {
+function deviceLines(lines: Line[], onend?: () => void): boolean {
   const lang = SPK[app.P.lang];
   try {
     speechSynthesis.cancel();
@@ -52,6 +98,17 @@ function speakLines(lines: Line[], onend?: () => void): boolean {
     return true;
   } catch { return false; }
 }
+/** Two-host podcast: host 0 uses the chosen voice, host 1 the other one. */
+function speakLines(lines: Line[], onend?: () => void, onstart?: (sec: number) => void): boolean {
+  stopAudio();
+  try { speechSynthesis.cancel(); } catch { /* no speech */ }
+  if (azure && lines.length) {
+    const g0 = app.P.voice === "male" ? "male" : "female";
+    playAzure(lines.map((l) => ({ voice: l.h ? other(g0) : g0, text: l.t })), onend, () => deviceLines(lines, onend), onstart);
+    return true;
+  }
+  return deviceLines(lines, onend);
+}
 
 export const estL = (lines: Line[]) => Math.max(15, lines.map((l) => l.t).join(" ").split(/\s+/).length * 0.45 + 4);
 export const est = (t: string, b: string) => Math.max(12, (t + " " + b).split(/\s+/).length * 0.5 + 3);
@@ -61,6 +118,7 @@ export const pod = { id: null as string | null, on: false, t0: 0, dur: 0, timer:
 
 export function stopPod() {
   clearInterval(pod.timer);
+  stopAudio();
   try { speechSynthesis.cancel(); } catch { /* ignore */ }
   pod.on = false; pod.id = null; pod.progress = 0;
   emit();
@@ -72,7 +130,9 @@ export function playPod(id: string, entry: { lines?: Line[]; t?: string; b?: str
   pod.id = id; pod.on = true; pod.t0 = Date.now();
   pod.dur = (entry.lines ? estL(entry.lines) : est(entry.t || "", entry.b || "")) * 1000;
   const end = () => { if (pod.id === id) stopPod(); };
-  const ok = entry.lines ? speakLines(entry.lines, end) : speak([entry.t || "", entry.b || ""], end);
+  // With Azure audio, the progress bar follows the real length of the clip.
+  const start = (sec: number) => { if (pod.id === id) { pod.t0 = Date.now(); pod.dur = sec * 1000; } };
+  const ok = entry.lines ? speakLines(entry.lines, end, start) : speak([entry.t || "", entry.b || ""], end, start);
   pod.transcript[id] = { ok, lines: entry.lines || null, text: entry.lines ? "" : `${entry.t}. ${entry.b}` };
   pod.timer = setInterval(() => {
     pod.progress = Math.min(1, (Date.now() - pod.t0) / pod.dur);
@@ -93,12 +153,12 @@ export const reels: Record<string, { i: number; on: boolean; t: any; dur: number
 export function pauseReel(id: string) {
   const r = reels[id]; if (!r) return;
   clearTimeout(r.t);
-  if (r.on) try { speechSynthesis.cancel(); } catch { /* ignore */ }
+  if (r.on) { stopAudio(); try { speechSynthesis.cancel(); } catch { /* ignore */ } }
   r.on = false;
   emit();
 }
 export function stopReels(except?: string) { Object.keys(reels).forEach((id) => { if (id !== except && reels[id].on) pauseReel(id); }); }
-export function toggleReel(id: string, n: number, vo?: string) {
+export function toggleReel(id: string, n: number, vo?: string, durs?: (number | undefined)[]) {
   const r = reels[id] || (reels[id] = { i: 0, on: false, t: 0, dur: 3000 });
   if (r.on) { pauseReel(id); return; }
   stopReels(id);
@@ -106,12 +166,13 @@ export function toggleReel(id: string, n: number, vo?: string) {
   if (r.i >= n) r.i = 0;
   r.on = true; r.dur = vo ? 4000 : 3000;
   if (vo && r.i === 0) speak([vo]);
+  // A scene can last longer than the others (the Liiga goal clip scene).
   const step = () => {
     r.t = setTimeout(() => {
       r.i++;
       if (r.i >= n) { r.i = 0; r.on = false; emit(); return; }
       emit(); step();
-    }, r.dur);
+    }, durs?.[r.i] ?? r.dur);
   };
   step();
   emit();

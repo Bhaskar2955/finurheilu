@@ -14,6 +14,7 @@ export const EXTRA: Record<"fi" | "en" | "sv", Record<string, any>> = {
     hlSample: "Liiga clips appear when the server is connected to liiga.fi (not in sample mode).",
     hlLoading: "Loading clips…", hlOpen: "Open the clip on Liiga's server ↗", hlErr: "This clip can't be played here.",
     hlWatch: "Watch the goal", hlPrev: "Previous clip", hlNext: "Next clip", hlClose: "Close", hlPer: (p: number) => (p > 3 ? "OT" : `P${p}`),
+    voiceAz: "Natural voices by Azure AI Speech.", voiceDev: "Uses this device’s voices. Add an Azure Speech key on the server for natural voices.", clipScene: "Liiga goal clip",
     goalsBy: "Goals",
   },
   fi: {
@@ -30,6 +31,7 @@ export const EXTRA: Record<"fi" | "en" | "sv", Record<string, any>> = {
     hlSample: "Liigan klipit näkyvät, kun palvelin on yhteydessä liiga.fi:hin (ei esimerkkitilassa).",
     hlLoading: "Ladataan klippejä…", hlOpen: "Avaa klippi Liigan palvelimella ↗", hlErr: "Tätä klippiä ei voi toistaa täällä.",
     hlWatch: "Katso maali", hlPrev: "Edellinen klippi", hlNext: "Seuraava klippi", hlClose: "Sulje", hlPer: (p: number) => (p > 3 ? "JA" : `${p}. erä`),
+    voiceAz: "Luonnolliset äänet: Azure AI Speech.", voiceDev: "Käyttää laitteen omia ääniä. Lisää palvelimelle Azure Speech -avain luonnollisia ääniä varten.", clipScene: "Liigan maaliklippi",
     goalsBy: "Maalit",
   },
   sv: {
@@ -46,6 +48,7 @@ export const EXTRA: Record<"fi" | "en" | "sv", Record<string, any>> = {
     hlSample: "Liiga-klippen syns när servern är ansluten till liiga.fi (inte i exempelläge).",
     hlLoading: "Laddar klipp…", hlOpen: "Öppna klippet på Liigas server ↗", hlErr: "Det här klippet kan inte spelas här.",
     hlWatch: "Se målet", hlPrev: "Föregående klipp", hlNext: "Nästa klipp", hlClose: "Stäng", hlPer: (p: number) => (p > 3 ? "FÖ" : `P${p}`),
+    voiceAz: "Naturliga röster från Azure AI Speech.", voiceDev: "Använder enhetens röster. Lägg till en Azure Speech-nyckel på servern för naturliga röster.", clipScene: "Liigas målklipp",
     goalsBy: "Mål",
   },
 };
