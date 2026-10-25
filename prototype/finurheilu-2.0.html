@@ -730,6 +730,10 @@ sv:{odH:"Slutspelschanser",odSub:"Varje lags chans att nå varje omgång",odTeam
  odFormat:"Plats 1–4 går direkt till kvartsfinal, plats 5–12 spelar kvalserie (bäst av 5) och plats 13 och nedåt är ute. Kvartsfinal, semifinal och final avgörs i bäst av 7.",
  odHow:(n,g)=>`Modellens uppskattning från ${n} simulerade säsonger, utifrån poäng per match och de ${g} matcher som återstår i schemat. Ingen prognos från Liiga och inget spelråd.`}};
 Object.keys(S_VO).forEach(k=>Object.assign(S[k],S_VO[k]));
+const S_AP={en:{autoPub:"Auto-published",holdBtn:"Hold",autoApH:"Auto-publish fact-checked stories",autoApB:"Stories where every fact matches the data go out straight away, labelled “AI-generated · fact-checked”. The editor can still hold, edit or approve any story here."},
+ fi:{autoPub:"Julkaistu automaattisesti",holdBtn:"Pysäytä",autoApH:"Julkaise faktatarkistetut jutut automaattisesti",autoApB:"Jutut, joiden kaikki faktat vastaavat dataa, julkaistaan heti merkinnällä ”Tekoälyn tekemä · faktat tarkistettu”. Toimittaja voi silti pysäyttää, muokata tai hyväksyä minkä tahansa jutun täällä."},
+ sv:{autoPub:"Publicerad automatiskt",holdBtn:"Stoppa",autoApH:"Publicera faktagranskade texter automatiskt",autoApB:"Texter där varje fakta stämmer med datan publiceras direkt, märkta ”AI-genererad · faktagranskad”. Redaktören kan ändå stoppa, redigera eller godkänna vilken text som helst här."}};
+Object.keys(S_AP).forEach(k=>Object.assign(S[k],S_AP[k]));
 
 const LANGS=[["fi","Suomi"],["en","English"],["sv","Svenska"]];
 const LOC={fi:"fi-FI",en:"en-GB",sv:"sv-FI"},SPK={fi:"fi-FI",en:"en-GB",sv:"sv-SE"};
@@ -1826,7 +1830,15 @@ function runTests(){const t0=performance.now();const res={stories:0,claims:0,wro
 /* ======================= v2 UI ======================= */
 IC.nav.push('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M7 9h7M7 13h7M7 17h4"/></svg>');
 let CLR=[],FCR={},feedSeg=store.get("fu2.feed","teams"),nrSeg="queue",relRes=null,nrEdit=null,nrMsg="";const apiState={url:"",key:"",msg:"",busy:false};
-const apprOf=id=>(P.appr||{})[id];
+// Stories that pass the fact check 100% are published automatically (labelled "fact-checked"),
+// unless the editor switched auto-publish off in Newsroom → Rules or put this story on hold.
+const AUTOAP={};
+const apprOf=id=>{const a=(P.appr||{})[id];if(a)return a.hold?undefined:a;
+ if(P.autoAppr===false||!id)return undefined;
+ if(!(id in AUTOAP)){const m=/^s:([^:]+):(.+)$/.exec(id);let ok=false;
+  try{if(m){const st=story(m[1],{rid:m[2],len:"medium",tone:"neutral"});ok=!!(st&&st.id===id&&factCheck(st).ok)}}catch(e){ok=false}
+  AUTOAP[id]=ok?{ok:1,auto:1}:null}
+ return AUTOAP[id]||undefined};
 function R2(toks){return (toks||[]).map(t=>{if(!t)return"";if(t.cl)return `<b>${esc(t.v)}</b>`;return esc(t)}).join("")}
 function showPop(h){$("#popIn").innerHTML=h;$("#pop").hidden=false}
 function hidePop(){const p=$("#pop");if(p)p.hidden=true}
@@ -1856,7 +1868,7 @@ function pendingCard(tm){const x=s();const fo=story(tm,{len:"short",tone:"neutra
 function summaryCard(tm){const x=s();const len=isPrem()?P.len:"medium";const st=story(tm,{len,tone:isPrem()?P.tone:"neutral"});if(!st)return `<p class="small muted">–</p>`;
  if(isQuiet(st)){const ng=nextGame(tm);return `<div class="item"><span class="tag">${esc(x.labAuto)}</span><p style="margin:0">${esc(x.quiet(fDate(st.c.r.d,P.lang),ng?`${ng.h} – ${ng.a}, ${fDate(ng.d,P.lang)} ${ng.t}`:""))}</p></div>`}
  const ap=apprOf(st.id);
- return lenToneCtl()+(ap?storyBody(st,{label:ap.edit?x.labEdit:x.labEd,edited:ap.edit&&ap.L===P.lang?ap.edit:null}):pendingCard(tm))
+ return lenToneCtl()+(ap?storyBody(st,{label:ap.edit?x.labEdit:ap.auto?x.labAuto:x.labEd,edited:ap.edit&&ap.L===P.lang?ap.edit:null}):pendingCard(tm))
   }
 function stakesCard(tm){const x=s();const c=ctx(tm,P.lang);if(!c||!c.hasTable)return"";const W=NL[P.lang];
  return `<div class="stk"><div class="between"><span class="l">${esc(x.stakes)}</span>${!isPrem()?`<span class="spons">${esc(x.stakesBy)} <b>Continental</b></span>`:""}</div>
@@ -1886,7 +1898,7 @@ function podBlock(tm){const x=s();const all=teamRes(tm);if(!all.length)return"";
    <span class="vsw" role="group" aria-label="${esc(x.voice)}"><button data-voice="female" aria-pressed="${P.voice==="female"}">${esc(x.female)}</button><button data-voice="male" aria-pressed="${P.voice==="male"}">${esc(x.male)}</button></span>
    <div class="wave">${Array.from({length:24},(_,i)=>`<i style="height:${6+((i*37)%16)}px;animation-delay:${(i%8)*.1}s"></i>`).join("")}</div>
    <div class="bar"><span data-pbar="${esc(e.id)}"></span></div></div></div><div class="transcript" data-tr="${esc(e.id)}" hidden></div></div>`}).join("")
-  +`<p class="small muted" style="margin:6px 0 0">${esc(x.labEd)}${isPrem()?"":" · "+esc(x.ad)+": iLOQ"}</p>`}
+  +`<p class="small muted" style="margin:6px 0 0">${esc((apprOf("s:"+tm+":"+lat.id)||{}).auto?x.labAuto:x.labEd)}${isPrem()?"":" · "+esc(x.ad)+": iLOQ"}</p>`}
 function playPod(id){const st=STO[id];if(!st)return;if(pod.id===id&&pod.on){stopPod();return}stopPod();stopReels();
  pod.id=id;pod.on=true;pod.t0=Date.now();pod.dur=(st.lines?estL(st.lines):est(st))*1000;refreshPod(id);
  const end=()=>{if(pod.id===id)stopPod()};const ok=st.lines?speakLines(st.lines,end):speak([st.t,st.b],end);const x=s();
@@ -1899,7 +1911,7 @@ function videoBlock(tm){const x=s();const st=story(tm,{len:"short",tone:P.tone==
   `<div class="cap">${esc(x.formL)}</div><div class="fdots">${c.letters.map(w=>`<i class="${w?"w":"l"}">${w?LT[0]:LT[1]}</i>`).join("")}</div><div class="cap">${esc(plain(W.form(c,"neutral")))}</div>`,
   c.hasTable?`<div class="cap">${esc(x.tableL)}</div><div class="big" style="font-size:76px;color:var(--lime)">${esc(c.pos.v)}</div><div class="cap">${esc(plain(W.why(c)))}</div>`:"",
   c.ng?`<div class="cap">${esc(x.nextL)}</div><div class="row" style="gap:10px">${crest(c.ng.h,46)}<span class="d" style="font-size:22px">vs</span>${crest(c.ng.a,46)}</div><div class="cap">${esc(c.nd.v)} · ${esc(c.nt.v)}</div>`:"",
-  `<div class="big" style="font-size:34px">Fin<span style="color:var(--lime)">Urheilu</span></div><div class="cap">${esc(x.madeFrom)}</div><div class="cap">${esc(x.labEd)}</div>`].filter(Boolean);
+  `<div class="big" style="font-size:34px">Fin<span style="color:var(--lime)">Urheilu</span></div><div class="cap">${esc(x.madeFrom)}</div><div class="cap">${esc((apprOf("s:"+tm+":"+st.c.r.id)||{}).auto?x.labAuto:x.labEd)}</div>`].filter(Boolean);
  const vo=[plain(st.title),...st.body.map(plain),st.why?plain(st.why):""].filter(Boolean).join(". ").replace(/[.!]\./g,m=>m[0]);
  return `<div class="shortwrap"><div class="reel short" data-reel="sv:${esc(tm)}" data-n="${sc.length}" data-vo="${esc(vo)}" style="--ra:${T[tm].col}" role="button" aria-label="${esc(x.play)}"><div class="bars">${sc.map((_,i)=>`<i class="${i?"":"on"}"><b></b></i>`).join("")}</div>
   <span class="bd">${esc(x.shortCap)}</span>${sc.map((z,i)=>`<div class="scene ${i?"":"on"}">${z}</div>`).join("")}${fsBtn()}<div class="ov"><span>${IC.play.replace("<svg",'<svg width="24" height="24"')}</span></div></div>
@@ -1963,7 +1975,7 @@ function vHome(){const x=s();const sl=live.slot&&started()?live.slot:slot();
  <div class="seg" style="margin-top:12px">${[["teams",x.feedTeams],["league",x.feedLeague],["town",x.feedTown]].map(([k,n])=>`<button data-feed="${k}" aria-pressed="${feedSeg===k}">${esc(n)}</button>`).join("")}</div>
  ${P.notif.weekly&&feedSeg==="teams"?`<button class="weekcard" data-week>${IC.summary}<span class="grow"><b>${esc(x.weekH)}</b><span class="small muted">${esc(x.weekOpen)}</span></span>›</button>`:""}
  <div class="stack" style="margin-top:10px">${feedSeg==="league"?leagueFeed():feedSeg==="town"?townFeed():teamsFeed()}</div>`}
-function teamsFeed(){const x=s();return P.teams.map((tm,ti)=>{const fm=tf(tm);const act=fm.includes(openFmt[tm])?openFmt[tm]:fm[0];
+function teamsFeed(){const x=s();return P.teams.map((tm,ti)=>{const fm0=tf(tm);const fm=isPrem()?[...fm0,...["summary","podcast","video"].filter(k=>!fm0.includes(k))]:fm0;const act=fm.includes(openFmt[tm])?openFmt[tm]:fm[0];
  return `<section class="c tsec" style="--tc:${T[tm].col}"><div class="tsec-h">${crest(tm,34)}<b>${esc(tm)}</b><span class="pos">${esc(x.place)} ${posOf(tm)}</span></div>
   ${stakesCard(tm)}
   <div class="fmts" role="tablist">${fm.map(k=>`<button class="fbtn" role="tab" data-open-fmt="${esc(tm)}" data-k="${k}" aria-pressed="${act===k}">${IC[k]}${esc(x.fmt[k])}</button>`).join("")}${isPrem()?"":["video","podcast"].map(k=>`<button class="fbtn locked" data-paywall>${IC.lock}${esc(x.fmt[k])}</button>`).join("")}</div>
@@ -1995,7 +2007,7 @@ function vWeek(){const x=s();const end=(()=>{const d=new Date(TODAY+"T12:00:00")
 /* match detail additions */
 function detailSum(g,res,myTeam){const x=s();if(!res){const pv=preview(g);return `<div class="c pt">${pv?storyBody(pv,{label:x.labAuto}):`<p class="small muted">–</p>`}</div>`}
  const tm=myTeam||g.h;const len=isPrem()?P.len:"medium";const st=story(tm,{rid:g.id,len,tone:isPrem()?P.tone:"neutral"});if(!st)return"";const ap=apprOf(st.id);
- return `<div class="c pt">${lenToneCtl()}${ap?storyBody(st,{label:ap.edit?x.labEdit:x.labEd,edited:ap.edit&&ap.L===P.lang?ap.edit:null}):storyBody(story(tm,{rid:g.id,len:"short",tone:"neutral"}),{label:x.labPend,extra:nrLink()})}</div>`}
+ return `<div class="c pt">${lenToneCtl()}${ap?storyBody(st,{label:ap.edit?x.labEdit:ap.auto?x.labAuto:x.labEd,edited:ap.edit&&ap.L===P.lang?ap.edit:null}):storyBody(story(tm,{rid:g.id,len:"short",tone:"neutral"}),{label:x.labPend,extra:nrLink()})}</div>`}
 function seedVotes(id){let h=7;for(const ch of id)h=(h*31+ch.charCodeAt(0))>>>0;return [40+h%80,8+(h>>>7)%22,35+(h>>>13)%80]}
 function pollBox(g,res){const x=s();const v=(P.poll||{})[g.id];const ks=["h","x","a"];const cnt=seedVotes(g.id).map((n,i)=>n+(v===ks[i]?1:0));const tot=cnt.reduce((a,b)=>a+b,0);const labels=[g.h,x.pollOT,g.a];const top=labels[cnt.indexOf(Math.max(...cnt))];
  return `<div class="c pt" style="margin-top:12px"><div class="between"><span class="l">${esc(x.pollH)}</span><span class="small muted">${esc(x.votes(tot))}</span></div>
@@ -2023,12 +2035,12 @@ function vNewsroom(){const x=s();return `${header(`<button class="icon" data-tab
 function nrQueue(){const x=s();const order=[...P.teams,...AZ.map(t=>t.name).filter(n=>!P.teams.includes(n))];const items=order.map(tm=>story(tm,{len:"medium",tone:"neutral"})).filter(Boolean);
  return `${nrMsg?`<div class="banner"><span class="grow">${esc(nrMsg)}</span></div>`:""}<button class="btn" data-apprall>${esc(x.apprAll)}</button>
  ${items.map(st=>{const fc=factCheck(st);FCR[st.id]=st;const ap=apprOf(st.id);const ed=nrEdit===st.id;const txt=ap&&ap.edit&&ap.L===P.lang?ap.edit:st.body.map(plain).join(" ");
-  return `<div class="c nr"><div class="between"><span class="row">${crest(st.tm,24)}<b>${esc(st.tm)}</b></span><span class="tier ${ap?"ok":""}">${esc(ap?x.approved:x.tierTop)}</span></div>
+  return `<div class="c nr"><div class="between"><span class="row">${crest(st.tm,24)}<b>${esc(st.tm)}</b></span><span class="tier ${ap?"ok":""}">${esc(ap?(ap.auto?x.autoPub:x.approved):x.tierTop)}</span></div>
    <p class="small" style="margin:8px 0 4px"><b>${R2(st.title)}</b></p>
    ${ed?`<textarea class="notes" id="nrText">${esc(txt)}</textarea>`:`<p class="small muted" style="margin:0 0 8px">${esc(txt)}</p>`}
    <div class="row small" style="flex-wrap:wrap">${fcBtn(st)}
    ${ed?`<button class="smallbtn add" data-editsave="${esc(st.id)}">${esc(x.save)}</button><button class="smallbtn" data-editcancel>${esc(x.cancel2)}</button>`
-    :`${ap?`<button class="smallbtn" data-unappr="${esc(st.id)}">${esc(x.undo)}</button>`:`<button class="smallbtn add" data-appr="${esc(st.id)}" ${fc.ok?"":"disabled"}>${esc(x.approve)}</button>`}<button class="smallbtn" data-edit="${esc(st.id)}">${esc(x.edit)}</button>`}</div></div>`}).join("")}
+    :`${ap?`<button class="smallbtn" data-unappr="${esc(st.id)}">${esc(ap.auto?x.holdBtn:x.undo)}</button>`:`<button class="smallbtn add" data-appr="${esc(st.id)}" ${fc.ok?"":"disabled"}>${esc(x.approve)}</button>`}<button class="smallbtn" data-edit="${esc(st.id)}">${esc(x.edit)}</button>`}</div></div>`}).join("")}
  <div class="c pt"><div class="row" style="flex-wrap:wrap;gap:6px"><span class="tier ok">${esc(x.tierFacts)}</span><span class="tier ok">${esc(x.tierLow)}</span></div><p class="small" style="margin:8px 0 0">${esc(x.autoSum(RESULTS.length,DEMO_R.length+1))}</p></div>`}
 function pct(a,b){const v=b?(a/b*100):0;const t=v.toFixed(2);return (P.lang==="en"?t:t.replace(".",","))+" %"}
 function nrTests(){const x=s();const r=relRes;
@@ -2037,7 +2049,7 @@ function nrTests(){const x=s();const r=relRes;
   <div class="l">${esc(x.relLang)}</div><table class="rt"><thead><tr><th></th><th class="n">${esc(x.relRows[0])}</th><th class="n">${esc(x.relRows[1])}</th><th class="n">${esc(x.relRows[2])}</th></tr></thead><tbody>${["fi","en","sv"].map(L=>{const b=r.byLang[L]||{stories:0,claims:0,wrong:0};return `<tr><td>${flag(L,20,14)} ${L.toUpperCase()}</td><td class="n">${b.stories}</td><td class="n">${b.claims}</td><td class="n"><b class="${b.wrong?"badc":"okc"}">${b.wrong}</b></td></tr>`}).join("")}</tbody></table>
   <div class="l">${esc(x.relInject)}</div><p class="small" style="margin:4px 0 0">${esc(x.relInjectB)} → <b class="${r.inject&&r.inject.caught?"okc":"badc"}">${esc(r.inject&&r.inject.caught?x.caught:x.missed)}</b></p>
   <p class="small muted" style="margin:8px 0 0">${esc(x.relLast(r.at))} · ${r.ms} ms</p>`:""}</div>`}
-function nrRules(){const x=s();return `<div class="c pt"><b>${esc(x.rulesH)}</b><ol class="rules">${x.rules.map(r=>`<li>${esc(r)}</li>`).join("")}</ol></div>
+function nrRules(){const x=s();return `<div class="c pt"><div class="between"><span><b>${esc(x.autoApH)}</b><br><span class="small muted">${esc(x.autoApB)}</span></span><button class="tgl" data-autoappr aria-pressed="${P.autoAppr!==false}" aria-label="${esc(x.autoApH)}"></button></div></div><div class="c pt"><b>${esc(x.rulesH)}</b><ol class="rules">${x.rules.map(r=>`<li>${esc(r)}</li>`).join("")}</ol></div>
  <div class="c pt"><b>${esc(x.tiersH)}</b><table class="rt"><tbody>${x.tiers.map(([a,b])=>`<tr><td><b>${esc(a)}</b></td><td>${esc(b)}</td></tr>`).join("")}</tbody></table>
  <div class="row" style="flex-wrap:wrap;gap:6px"><span class="tag">${esc(x.labAuto)}</span><span class="tag">${esc(x.labEd)}</span><span class="tag">${esc(x.labEdit)}</span></div></div>`}
 function nrScale(){const x=s();const end=(()=>{const d=new Date(TODAY+"T12:00:00");d.setDate(d.getDate()+7);return iso(d)})();const g7=GAMES.filter(g=>g.d>=TODAY&&g.d<=end).length;const nt=TEAMS.length;
@@ -2071,13 +2083,14 @@ function v2Click(e,q,x){let el;
  if(el=q("[data-pk]")){P.picks=P.picks||{};P.picks[el.dataset.pk]=el.dataset.k;save();render();return true}
  if(el=q("[data-nrseg]")){nrSeg=el.dataset.nrseg;nrMsg="";nrEdit=null;render();return true}
  if(el=q("[data-appr]")){P.appr[el.dataset.appr]={ok:1};nrMsg="";save();render();return true}
- if(el=q("[data-unappr]")){delete P.appr[el.dataset.unappr];save();render();return true}
+ if(q("[data-autoappr]")){P.autoAppr=P.autoAppr===false;save();render();return true}
+ if(el=q("[data-unappr]")){const id=el.dataset.unappr;const was=P.appr[id];delete P.appr[id];if(apprOf(id))P.appr[id]={hold:1};else if(was&&was.hold)delete P.appr[id];save();render();return true}
  if(el=q("[data-edit]")){nrEdit=el.dataset.edit;nrMsg="";render();return true}
  if(q("[data-editcancel]")){nrEdit=null;render();return true}
  if(el=q("[data-editsave]")){const id=el.dataset.editsave;const st=FCR[id];const ta=$("#nrText");if(!st||!ta)return true;const txt=ta.value.trim();const bad=checkText(txt,st.claims);
   if(bad.length){nrMsg=x.blocked(bad.map(b=>`“${b}”`).join(", "));render();const t2=$("#nrText");if(t2)t2.value=txt;return true}
   P.appr[id]={ok:1,edit:txt,L:P.lang};nrEdit=null;nrMsg=x.editOk;save();render();return true}
- if(q("[data-apprall]")){let n=0;Object.values(FCR).forEach(st=>{if(st&&st.id&&st.id.startsWith("s:")&&!P.appr[st.id]&&factCheck(st).ok){P.appr[st.id]={ok:1};n++}});nrMsg=x.apprDone(n);save();render();return true}
+ if(q("[data-apprall]")){let n=0;Object.values(FCR).forEach(st=>{if(st&&st.id&&st.id.startsWith("s:")&&!apprOf(st.id)&&factCheck(st).ok){P.appr[st.id]={ok:1};n++}});nrMsg=x.apprDone(n);save();render();return true}
  if(el=q("[data-runtests]")){el.textContent=x.relRunning;el.disabled=true;setTimeout(()=>{relRes=runTests();render()},40);return true}
  if(el=q("[data-apimode]")){P.apiMode=el.dataset.apimode;save();render();return true}
  if(q("[data-apitest]")){apiTest();return true}
