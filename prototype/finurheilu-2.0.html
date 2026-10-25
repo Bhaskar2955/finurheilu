@@ -79,6 +79,30 @@ a{color:var(--cyan)}
 .splash .rink{position:absolute;inset:auto -20% -30% -20%;height:60%;border-radius:50% 50% 0 0;border:2px solid rgba(73,198,255,.25);border-bottom:0}
 .splash .rink::before{content:"";position:absolute;left:50%;top:18%;width:120px;height:120px;margin-left:-60px;border-radius:50%;border:2px solid rgba(255,77,94,.35)}
 .splash .jersey{font-family:var(--display);font-weight:800;font-size:140px;line-height:.8;color:rgba(255,255,255,.07);position:absolute;right:-6px;bottom:90px}
+/* intro video: slapshot clip, then the name appears in the middle and glides up into the header */
+.vintro{position:absolute;inset:0;z-index:5;background:#050b16;border-radius:inherit;overflow:hidden;cursor:pointer}
+.vintro video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 50%;transition:opacity .35s ease}
+.vintro.logo video{opacity:0}
+.vintro .vflash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(210,240,255,.95),rgba(73,198,255,.3) 35%,transparent 70%)}
+.vintro.logo .vflash{animation:vFlash .7s ease-out}
+.vintro .vmark{position:absolute;left:0;right:0;top:50%;display:flex;justify-content:center;opacity:0;transform:translateY(-50%)}
+.vintro.logo .vmark{animation:vIn .6s cubic-bezier(.2,.9,.3,1.25) .08s forwards}
+.vintro .vmark .brand{font-size:46px;gap:10px;color:#EAF2FF;transform-origin:0 0}
+.vintro .vmark .brand svg{width:56px;height:56px}
+.vintro.fly{background:transparent;transition:background .7s ease .1s}
+.vintro .skip{position:absolute;bottom:18px;left:0;right:0;text-align:center;font-size:12px;color:#9FB0CC;text-shadow:0 1px 2px #000;transition:opacity .3s}
+.vintro.logo .skip{opacity:0}
+.splash.enter .hdr .brand{opacity:0}
+.splash.enter>*:not(.vintro):not(.rink):not(.jersey):not(.hdr){opacity:0;transform:translateY(18px)}
+.splash.enter>.rink,.splash.enter>.jersey{opacity:0}
+.splash.reveal>*:not(.vintro):not(.rink):not(.jersey):not(.hdr){animation:vRise .6s cubic-bezier(.2,.8,.2,1) .35s forwards}
+.splash.reveal>:last-child:not(.vintro){animation-delay:.5s}
+.splash.reveal>.rink,.splash.reveal>.jersey{animation:vFade .9s ease .3s forwards}
+@keyframes vFlash{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+@keyframes vIn{from{opacity:0;transform:translateY(-50%) scale(1.3)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+@keyframes vRise{to{opacity:1;transform:none}}
+@keyframes vFade{to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.vintro{display:none}.splash.enter>*{opacity:1!important;transform:none!important}.splash.enter .hdr .brand{opacity:1}}
 /* team lists */
 .search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 12px;height:44px;margin-top:12px}
 .search input{flex:1;background:transparent;border:0;color:var(--ink);font:inherit;outline:none;min-width:0}
@@ -1598,7 +1622,24 @@ function vPlans(inApp){const x=s();const pr=bill==="annual"?PRICE.annual:PRICE.m
   <p class="small muted" style="margin:8px 0 0">${esc(x.cmpNote)} <a href="https://kauppa.telia.fi/kauppa/mtv-katsomo/liiga" target="_blank" rel="noopener">MTV Katsomo · Telia</a> · <a href="https://etusuora.com/live-stream/jaakiekko/liiga" target="_blank" rel="noopener">Etusuora</a></p></div>
  </div>`}
 // 1. Splash
-function vSplash(){const x=s();return `<div class="splash"><div class="rink"></div><div class="jersey">28</div>
+// Intro video (once per app open, tap to skip): slapshot clip, then the name in the middle glides up into the header
+let introPlayed=false,introT=[];
+function introHTML(){const skip={fi:"Ohita napauttamalla",en:"Tap to skip",sv:"Tryck för att hoppa över"}[P.lang]||"Tap to skip";
+ return `<div class="vintro" data-skipintro aria-hidden="true"><video src="intro-slapshot.mp4" muted playsinline autoplay preload="auto"></video><div class="vflash"></div><div class="vmark"><div class="brand">${IC.logo}<span>Fin<b>Urheilu</b></span></div></div><div class="skip">${esc(skip)}</div></div>`}
+function introStart(){const sp=document.querySelector(".splash.enter");if(!sp)return;const ov=sp.querySelector(".vintro"),v=ov&&ov.querySelector("video");if(!v){introEnd();return}let done=false;
+ const logo=()=>{if(done)return;done=true;ov.classList.add("logo");introT.push(setTimeout(introFly,1150))};
+ v.addEventListener("ended",logo);v.addEventListener("error",logo);
+ v.addEventListener("timeupdate",()=>{if(v.duration&&v.currentTime>=v.duration-.06)logo()});
+ try{const pr=v.play();if(pr&&pr.catch)pr.catch(logo)}catch(_){logo()}
+ introT.push(setTimeout(()=>{if(!(v.currentTime>0))logo()},1500),setTimeout(logo,4000))}
+function introFly(){const sp=document.querySelector(".splash.enter");if(!sp)return;const ov=sp.querySelector(".vintro");if(!ov)return;
+ const mk=ov.querySelector(".vmark .brand"),hb=sp.querySelector(".hdr .brand");
+ if(mk&&hb&&mk.animate){const a=mk.getBoundingClientRect(),b=hb.getBoundingClientRect();
+  mk.animate([{transform:"none"},{transform:`translate(${b.left-a.left}px,${b.top-a.top}px) scale(${b.height/a.height})`}],{duration:850,easing:"cubic-bezier(.7,0,.2,1)",fill:"forwards"})}
+ ov.classList.add("fly");sp.classList.add("reveal");introT.push(setTimeout(introEnd,1250))}
+function introEnd(){introT.forEach(clearTimeout);introT=[];const sp=document.querySelector(".splash.enter");if(!sp)return;const ov=sp.querySelector(".vintro");if(ov){const v=ov.querySelector("video");if(v)v.pause();ov.remove()}sp.classList.remove("enter","reveal")}
+function vSplash(){const x=s();const play=!introPlayed&&!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);introPlayed=true;if(play)setTimeout(introStart,0);
+ return `<div class="splash${play?" enter":""}">${play?introHTML():""}<div class="rink"></div><div class="jersey">28</div>
  ${header()}<div style="position:relative"><div class="d" style="font-size:48px">${esc(x.tag)}</div><p class="muted" style="font-size:16px;max-width:30ch">${esc(x.splash)}</p></div>
  <div style="position:relative" class="stack"><button class="btn" data-go="register">${esc(x.getStarted)}</button><button class="textlink" data-go="login" style="align-self:center">${esc(x.login)}</button></div></div>`}
 // 2. Select team
@@ -2395,7 +2436,8 @@ document.addEventListener("click",e=>{const q=z=>e.target.closest(z);let el;cons
  if(el=q("[data-pick]")){if(live.min>=60)return;contest.pick=el.dataset.pick;const cb=$("#cbox");if(cb)cb.innerHTML=contestBox(findGame(contest.game));return}
  if(q("[data-mascot]")){mood=Date.now()+1500;bub=x.cheer;const cb=$("#cbox");if(cb)cb.innerHTML=contestBox(findGame(contest.game));return}
  if(el=q("[data-ntg]")){P.notif[el.dataset.ntg]=!P.notif[el.dataset.ntg];save();render();return}
- if(q("[data-restart]")){P.screen="splash";save();render();window.scrollTo(0,0);return}
+ if(q("[data-skipintro]")){introEnd();return}
+ if(q("[data-restart]")){introPlayed=false;P.screen="splash";save();render();window.scrollTo(0,0);return}
  if(q("[data-clear]")){store.clear();P=DEF();me=0;overlay=null;render();window.scrollTo(0,0);return}
  if(q("[data-report]")){toast(x.sent);return}
 });
