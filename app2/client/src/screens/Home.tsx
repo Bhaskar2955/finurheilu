@@ -9,6 +9,7 @@ import { C, DEMO_R, NL, ctx, fDate, juniorLead, juniorLine, leagueLine, plain, s
 import { TODAY, dayName, isPrem, nextGame, posOf, teamRes, tf, weekFrom } from "../lib/util";
 import { AdCard, AutoItem, McCard, Scoreboard, StoryBody, Teaser, openGame } from "../components/cards";
 import { Crest, Html, Icon, Lock, Seg, Toks, openPaywall } from "../components/ui";
+import { ClipStrip } from "../components/clips";
 
 export function Home() {
   const a = useApp();
@@ -218,7 +219,12 @@ export function VideoBlock({ tm }: { tm: string }) {
   ].filter(Boolean);
   const vo = [plain(st.title), ...st.body.map(plain), st.why ? plain(st.why) : ""].filter(Boolean).join(". ").replace(/[.!]\./g, (m) => m[0]);
   const id = "sv:" + tm;
-  return <Reel id={id} scenes={scenes} vo={vo} color={T[tm]?.col} cap={x.shortCap} share={tm} short />;
+  return (
+    <>
+      <Reel id={id} scenes={scenes} vo={vo} color={T[tm]?.col} cap={x.shortCap} share={tm} short />
+      <ClipStrip team={tm} />
+    </>
+  );
 }
 
 const FS_LABEL: Record<string, string> = { fi: "Koko näyttö", en: "Full screen", sv: "Helskärm" };

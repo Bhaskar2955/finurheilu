@@ -1,7 +1,7 @@
 /** Where the app's Liiga data comes from, in order: liiga.fi → last copy in Appwrite → built-in sample. */
 import { appwriteReady, loadBundle, saveBundle } from "./appwrite.js";
-import { fetchDay, fetchGame, fetchSeason, sampleBundle, seasonFor } from "./liiga.js";
-import type { Bundle, LiveGame } from "./types.js";
+import { fetchDay, fetchGame, fetchSeason, sampleBundle, seasonFor, todayHelsinki } from "./liiga.js";
+import type { Bundle, Clip, LiveGame } from "./types.js";
 
 const MODE = (process.env.DATA_MODE || "auto").toLowerCase(); // "auto" | "appwrite" | "sample"
 const TTL = Number(process.env.DATA_TTL_MINUTES || 10) * 60_000;
@@ -73,3 +73,37 @@ export const liveDay = (date: string): Promise<LiveGame[]> =>
 
 export const gameDetail = (liigaId: number, ended: boolean): Promise<LiveGame> =>
   cachedCall(`game:${liigaId}`, ended ? 6 * 3600_000 : 20_000, () => fetchGame(seasonFor(), liigaId));
+
+/**
+ * Liiga's own goal clips for recent finished games.
+ * team given: that team's last `games` games; otherwise the league's last 3 match days.
+ * The games-by-date endpoint carries videoClipUrl / videoThumbnailUrl on each goal event.
+ */
+export async function highlights(team: string | null, games = 5): Promise<{ source: string; clips: Clip[]; note?: string }> {
+  const b = await getBundle();
+  if (MODE === "sample" || b.mode === "sample") return { source: "sample", clips: [], note: "Liiga clips need the live liiga.fi connection" };
+  const today = todayHelsinki();
+  const done = b.results.filter((r) => r.liigaId && r.d <= today && (!team || r.h === team || r.a === team)).sort((x, y) => y.d.localeCompare(x.d));
+  const picked = team ? done.slice(0, games) : done.filter((r) => [...new Set(done.map((z) => z.d))].slice(0, 3).includes(r.d));
+  const byId = new Map(picked.map((r) => [r.liigaId!, r]));
+  const dates = [...new Set(picked.map((r) => r.d))];
+  const days = await Promise.all(
+    dates.map((d) => cachedCall(`clips:${d}`, d === today ? 120_000 : 3600_000, () => fetchDay(d)).catch(() => [] as LiveGame[])),
+  );
+  const clips: Clip[] = [];
+  for (const g of days.flat()) {
+    const r = byId.get(g.liigaId);
+    if (!r) continue;
+    for (const e of g.goals) {
+      if (!e.clip) continue;
+      const tm = e.home ? r.h : r.a;
+      if (team && tm !== team) continue; // a team's feed shows its own goals
+      clips.push({
+        key: `${g.liigaId}-${e.sec ?? e.min}-${e.score}`, liigaId: g.liigaId, d: r.d, h: r.h, a: r.a, hs: r.hs, as: r.as, x: r.x,
+        team: tm, home: e.home, min: e.min, period: e.period, score: e.score, scorer: e.scorer, clip: e.clip, thumb: e.thumb ?? null, types: e.types ?? [],
+      });
+    }
+  }
+  clips.sort((p, q) => q.d.localeCompare(p.d) || p.liigaId - q.liigaId || p.min - q.min);
+  return { source: "liiga.fi", clips };
+}

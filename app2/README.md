@@ -140,7 +140,8 @@ liiga.fi API ──► Node server (server/src/liiga.ts) ──► Appwrite tabl
   - If that is also missing, it serves the sample season.
 - The **Profile → Liiga data** section shows which source is in use, and its **Refresh** button forces a new fetch.
 - **`/api/live?date=YYYY-MM-DD`**: today's scores and goals. The app polls it every 30 seconds, so real games in progress show "LIVE" scores.
-- **`/api/game/:id`**: period scores and goal scorers for one game, shown in the game detail.
+- **`/api/game/:id`**: period scores and goal scorers for one game, shown in the game detail, with a ▶ button on goals that have a Liiga clip.
+- **`/api/highlights?team=Kärpät`**: Liiga's own goal clips from the team's last 5 games, shown under the video in the Video section (Premium). Liiga publishes them as `videoClipUrl` and `videoThumbnailUrl` on each goal, usually a few hours after the game. MP4 clips play directly; HLS streams play natively in Safari, and in other browsers through hls.js, loaded from a CDN. If a clip can't play, the app links to it on Liiga's server. Clips are streamed from Liiga's server and never copied or stored. In sample mode there are no clips.
 - **`npm run sync`**: refreshes Appwrite on demand, for example once a day.
 - `DATA_MODE` in `server/.env` sets where the data comes from:
   - `auto` (default): live, then Appwrite, then sample;

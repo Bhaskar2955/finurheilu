@@ -56,7 +56,12 @@ interface ApiScheduleGame {
   homeTeamGoals?: number; awayTeamGoals?: number;
 }
 interface ApiStandingsRow { teamName: string; ranking: number; games: number; points: number }
-interface ApiGoal { scorerPlayerId: number; gameTime: number; period: number; homeTeamScore: number; awayTeamScore: number }
+interface ApiGoal {
+  scorerPlayerId: number; gameTime: number; period: number; homeTeamScore: number; awayTeamScore: number;
+  /** Liiga's own highlight clip of the goal, plus a still image, when the league has published one. */
+  videoClipUrl?: string | null; videoThumbnailUrl?: string | null;
+  scorerPlayer?: { firstName?: string; lastName?: string } | null; goalTypes?: string[];
+}
 interface ApiTeam { teamName: string; goals: number; goalEvents?: ApiGoal[] }
 interface ApiDayGame { id: number; season: number; start: string; homeTeam: ApiTeam; awayTeam: ApiTeam; started: boolean; ended: boolean; gameTime?: number; finishedType?: string }
 interface ApiPlayer { id: number; firstName: string; lastName: string; jersey?: number; jerseyNumber?: number }
@@ -124,16 +129,24 @@ export function sampleBundle(note?: string): Bundle {
   };
 }
 
+/** Only plain http(s) links are passed on to the browser. */
+const httpUrl = (u?: string | null) => (typeof u === "string" && /^https?:\/\//i.test(u.trim()) ? u.trim() : null);
+
 function toLive(g: ApiDayGame, names: Map<number, { n: string; no: number | null }> = new Map()): LiveGame {
   const h = teamOf(g.homeTeam?.teamName) ?? "?", a = teamOf(g.awayTeam?.teamName) ?? "?";
   const goals: LiveGoal[] = [];
   for (const [team, home] of [[g.homeTeam, true], [g.awayTeam, false]] as [ApiTeam, boolean][]) {
     for (const e of team?.goalEvents ?? []) {
       const who = names.get(e.scorerPlayerId);
-      goals.push({ min: Math.max(1, Math.ceil(e.gameTime / 60)), period: e.period, home, score: `${e.homeTeamScore}–${e.awayTeamScore}`, scorer: who?.n ?? null, no: who?.no ?? null });
+      const sp = e.scorerPlayer ? `${e.scorerPlayer.firstName ?? ""} ${e.scorerPlayer.lastName ?? ""}`.trim() : "";
+      goals.push({
+        min: Math.max(1, Math.ceil(e.gameTime / 60)), sec: e.gameTime, period: e.period, home, score: `${e.homeTeamScore}–${e.awayTeamScore}`,
+        scorer: who?.n ?? (sp || null), no: who?.no ?? null,
+        clip: httpUrl(e.videoClipUrl), thumb: httpUrl(e.videoThumbnailUrl), types: (e.goalTypes ?? []).filter((t) => typeof t === "string"),
+      });
     }
   }
-  goals.sort((x, y) => x.min - y.min);
+  goals.sort((x, y) => (x.sec ?? x.min * 60) - (y.sec ?? y.min * 60));
   const periods: [number, number][] = [[0, 0], [0, 0], [0, 0]];
   for (const goal of goals) {
     const p = Math.min(2, Math.max(0, goal.period - 1));

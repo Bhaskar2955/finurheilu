@@ -8,6 +8,7 @@ import { act, app, emit, onSave, s, useApp, type Tab } from "./lib/state";
 import { applyMode, isPrem } from "./lib/util";
 import { Crest, Header, Html, Toast } from "./components/ui";
 import { Pop, openGame } from "./components/cards";
+import { ClipPlayer } from "./components/clips";
 import { Login, Personal, Plans, Register, Select, Splash } from "./screens/Onboarding";
 import { Home } from "./screens/Home";
 import { Matches } from "./screens/Matches";
@@ -71,6 +72,7 @@ export default function App() {
       </nav>
       <Toast />
       <Pop />
+      <ClipPlayer />
     </div>
   );
 }

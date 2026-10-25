@@ -10,6 +10,7 @@ import { avatar, cmpRow, flowChart, gauge, mbar, miniGauge, ring } from "../lib/
 import { dayName, findGame, isPrem, posOf, ptsFor, rowOf, tf } from "../lib/util";
 import { AdCard, McCard, MtvPartner, ResultBoard, Scoreboard, StoryBody } from "../components/cards";
 import { BackBtn, Crest, Header, Html, Icon, Seg } from "../components/ui";
+import { openClip, type Clip } from "../lib/highlights";
 import { LenToneCtl, Reel } from "./Home";
 
 /* ---------- real game detail from the server (period scores, goal scorers) ---------- */
@@ -137,12 +138,26 @@ function StatsBox({ g, res, isLive }: { g: AnyGame; res: boolean; isLive: boolea
 
 function EventsBox({ g, isLive, rd }: { g: AnyGame; isLive: boolean; rd: RealGame | null }) {
   const x = s();
+  // Liiga's own goal clips, when the league has published them for this game.
+  const clips: Clip[] = rd
+    ? rd.goals.flatMap((e, i) => e.clip ? [{
+        key: `${rd.liigaId}-${i}`, liigaId: rd.liigaId, d: g.d, h: g.h, a: g.a, hs: rd.hs, as: rd.as, x: rd.x || "",
+        team: e.home ? g.h : g.a, home: e.home, min: e.min, period: e.period, score: e.score, scorer: e.scorer, clip: e.clip, thumb: e.thumb ?? null,
+      }] : [])
+    : [];
   if (rd && rd.goals.length)
     return (
       <div className="c pt">
         {rd.goals.map((e, i) => {
           const team = e.home ? g.h : g.a;
-          return <div key={i} className="ev"><span className="m">{e.min}'</span><Crest name={team} size={20} /><span>{x.goal} · {e.scorer ? `${e.no ? "#" + e.no + " " : ""}${e.scorer} · ` : ""}{team} ({e.score})</span></div>;
+          const k = clips.findIndex((c) => c.key === `${rd.liigaId}-${i}`);
+          return (
+            <div key={i} className="ev">
+              <span className="m">{e.min}'</span><Crest name={team} size={20} />
+              <span className="grow">{x.goal} · {e.scorer ? `${e.no ? "#" + e.no + " " : ""}${e.scorer} · ` : ""}{team} ({e.score})</span>
+              {k >= 0 && <button type="button" className="evplay" aria-label={`${x.hlWatch} ${e.min}'`} title={x.hlWatch} onClick={() => openClip(clips, k)}>▶</button>}
+            </div>
+          );
         })}
       </div>
     );

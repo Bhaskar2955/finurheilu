@@ -16,7 +16,16 @@ export interface Bundle {
   sources: [string, string][];
 }
 
-export interface LiveGoal { min: number; period: number; home: boolean; score: string; scorer: string | null; no?: number | null }
+export interface LiveGoal {
+  min: number; sec?: number; period: number; home: boolean; score: string; scorer: string | null; no?: number | null;
+  /** Liiga highlight clip (video URL) and thumbnail, when published. */
+  clip?: string | null; thumb?: string | null; types?: string[];
+}
+/** One goal clip in the highlights feed. */
+export interface Clip {
+  key: string; liigaId: number; d: string; h: string; a: string; hs: number; as: number; x: "" | "OT" | "SO";
+  team: string; home: boolean; min: number; period: number; score: string; scorer: string | null; clip: string; thumb: string | null; types: string[];
+}
 export interface LiveGame {
   liigaId: number; h: string; a: string; hs: number; as: number;
   started: boolean; ended: boolean; min: number; x: "" | "OT" | "SO";

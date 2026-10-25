@@ -3,7 +3,8 @@
  *   GET  /api/health        status of Liiga data, Appwrite and AI
  *   GET  /api/data          season bundle: teams, table, upcoming games, results
  *   GET  /api/live?date=    live scores and goals for one day
- *   GET  /api/game/:id      one game: period scores and goal scorers
+ *   GET  /api/game/:id      one game: period scores and goal scorers (with Liiga goal clips)
+ *   GET  /api/highlights    Liiga goal clips from recent games (?team=Kärpät&games=5)
  *   GET  /api/ai/status     which writer is active (demo or gemini)
  *   POST /api/ai/rewrite    rewrite a fact-checked story with Gemini
  * In production it also serves the built React app from ../client/dist.
@@ -15,7 +16,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { aiStatus, rewrite } from "./ai.js";
 import { APPWRITE, appwriteReady } from "./appwrite.js";
-import { gameDetail, getBundle, liveDay, syncState } from "./data.js";
+import { gameDetail, getBundle, highlights, liveDay, syncState } from "./data.js";
 import { LIIGA_BASE, todayHelsinki } from "./liiga.js";
 
 const app = express();
@@ -52,6 +53,16 @@ app.get("/api/game/:id", async (req: Request, res: Response) => {
     res.json(await gameDetail(id, req.query.ended === "1"));
   } catch (e) {
     res.status(502).json({ error: (e as Error).message });
+  }
+});
+
+app.get("/api/highlights", async (req: Request, res: Response) => {
+  const team = typeof req.query.team === "string" && req.query.team.length < 40 ? req.query.team : null;
+  const games = Math.min(10, Math.max(1, Number(req.query.games) || 5));
+  try {
+    res.json(await highlights(team, games));
+  } catch (e) {
+    res.status(502).json({ source: "error", clips: [], error: (e as Error).message });
   }
 });
 

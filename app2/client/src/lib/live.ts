@@ -113,7 +113,7 @@ export function winProb(g: AnyGame) {
 }
 
 /* ---------- real live scores from the server ---------- */
-export interface RealGame { liigaId: number; h: string; a: string; hs: number; as: number; started: boolean; ended: boolean; min: number; x: string; periods: [number, number][]; goals: { min: number; period: number; home: boolean; score: string; scorer: string | null; no?: number | null }[] }
+export interface RealGame { liigaId: number; h: string; a: string; hs: number; as: number; started: boolean; ended: boolean; min: number; x: string; periods: [number, number][]; goals: { min: number; period: number; home: boolean; score: string; scorer: string | null; no?: number | null; clip?: string | null; thumb?: string | null }[] }
 export const real: Record<number, RealGame> = {};
 let realTimer = 0;
 export function realOf(g: AnyGame): RealGame | null {
