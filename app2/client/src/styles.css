@@ -465,6 +465,25 @@ nav.bottom button span{font-size:10px}
 .reel.short .scene .cap{align-self:center}
 .reel.short.playing .bars i.on b{animation-duration:var(--sd,3s)}
 .shortwrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+/* full-screen video */
+.reel .fsb{position:absolute;bottom:10px;inset-inline-end:10px;z-index:5;width:36px;height:36px;border-radius:50%;border:0;padding:0;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;cursor:pointer}
+.reel .fsb:hover,.reel .fsb:focus-visible{background:rgba(0,0,0,.8)}
+.reel .fsb .x{display:none}
+.reel:fullscreen,.reel.fsx{aspect-ratio:auto;max-width:none;width:100%;height:100%;margin:0;border-radius:0}
+.reel.fsx{position:fixed;inset:0;z-index:9999;height:100vh;height:100dvh}
+.reel:fullscreen .fsb .o,.reel.fsx .fsb .o{display:none}
+.reel:fullscreen .fsb .x,.reel.fsx .fsb .x{display:block}
+.reel:fullscreen .fsb,.reel.fsx .fsb{width:46px;height:46px;bottom:max(18px,env(safe-area-inset-bottom));inset-inline-end:18px}
+.reel:fullscreen .scene,.reel.fsx .scene{justify-content:center;align-items:center;text-align:center;gap:2vh;padding:10vh 6vw}
+.reel:fullscreen .scene .big,.reel.fsx .scene .big{font-size:clamp(44px,9vw,120px)!important}
+.reel:fullscreen .scene .cap,.reel.fsx .scene .cap{font-size:clamp(15px,2.2vw,24px)!important;align-self:center;max-width:900px;padding:10px 16px}
+.reel:fullscreen .scene .crest,.reel.fsx .scene .crest{width:clamp(64px,11vw,150px)!important;height:clamp(64px,11vw,150px)!important}
+.reel:fullscreen .scene .crest img,.reel.fsx .scene .crest img{width:100%;height:100%}
+.reel:fullscreen .scene .row,.reel.fsx .scene .row{gap:4vw!important}
+.reel:fullscreen .bars,.reel.fsx .bars{top:max(14px,env(safe-area-inset-top));left:4vw;right:4vw}
+.reel:fullscreen .bd,.reel.fsx .bd{top:calc(max(14px,env(safe-area-inset-top)) + 14px);inset-inline-end:4vw;font-size:12px}
+.reel:fullscreen .ov,.reel.fsx .ov{place-items:center}
+.reel:fullscreen .ov span,.reel.fsx .ov span{width:84px;height:84px}
 .fdots{display:flex;gap:6px}
 .fdots i{font-style:normal;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-family:var(--display);font-size:18px}
 .fdots i.w{background:var(--lime);color:#08111F}.fdots i.l{background:#3a4660;color:#fff}

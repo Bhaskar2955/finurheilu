@@ -1,4 +1,5 @@
 /** Home: live widgets, then "My teams / My league / My town" feeds. */
+import { useEffect, useRef, useState } from "react";
 import { GAMES, RESULTS, STAND, T, TEAMS } from "../lib/data";
 import { IC } from "../lib/icons";
 import { live, slot, started, startLive } from "../lib/live";
@@ -220,6 +221,9 @@ export function VideoBlock({ tm }: { tm: string }) {
   return <Reel id={id} scenes={scenes} vo={vo} color={T[tm]?.col} cap={x.shortCap} share={tm} short />;
 }
 
+const FS_LABEL: Record<string, string> = { fi: "Koko näyttö", en: "Full screen", sv: "Helskärm" };
+const FS_EXIT: Record<string, string> = { fi: "Poistu koko näytöstä", en: "Exit full screen", sv: "Avsluta helskärm" };
+
 export function Reel({ id, scenes, vo, color, cap, share, short }: { id: string; scenes: React.ReactNode[]; vo?: string; color?: string; cap: string; share?: string; short?: boolean }) {
   useApp();
   const x = s();
@@ -231,12 +235,45 @@ export function Reel({ id, scenes, vo, color, cap, share, short }: { id: string;
     try { if (navigator.share) { await navigator.share({ title: "FinUrheilu", text }); return; } } catch (e: any) { if (e?.name === "AbortError") return; }
     try { await navigator.clipboard.writeText(text); toast(x.shared); } catch { act((a) => { a.pop = { kind: "share", payload: text }; }); }
   };
+  // Full screen: the browser's real full-screen mode where allowed, otherwise the video fills the window (iPhone).
+  const ref = useRef<HTMLDivElement>(null);
+  const [fake, setFake] = useState(false);
+  const [real, setReal] = useState(false);
+  useEffect(() => {
+    const on = () => setReal(((document as any).fullscreenElement || (document as any).webkitFullscreenElement) === ref.current && !!ref.current);
+    document.addEventListener("fullscreenchange", on); document.addEventListener("webkitfullscreenchange", on);
+    return () => { document.removeEventListener("fullscreenchange", on); document.removeEventListener("webkitfullscreenchange", on); };
+  }, []);
+  useEffect(() => {
+    if (!fake) return;
+    document.documentElement.style.overflow = "hidden";
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setFake(false); };
+    document.addEventListener("keydown", esc);
+    return () => { document.documentElement.style.overflow = ""; document.removeEventListener("keydown", esc); };
+  }, [fake]);
+  const isFs = fake || real;
+  const toggleFs = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const el = ref.current as any; const d = document as any;
+    if (fake) { setFake(false); return; }
+    if (real) { const ex = d.exitFullscreen || d.webkitExitFullscreen; try { ex?.call(d)?.catch?.(() => {}); } catch { /* ignore */ } return; }
+    const rq = el?.requestFullscreen || el?.webkitRequestFullscreen;
+    if (!rq) setFake(true);
+    else try { rq.call(el)?.catch?.(() => setFake(true)); } catch { setFake(true); }
+    if (!r.on) toggleReel(id, scenes.length, vo);
+  };
+  const fsLabel = (isFs ? FS_EXIT : FS_LABEL)[app.P.lang] || FS_LABEL.en;
   const body = (
-    <div className={`reel ${short ? "short" : ""} ${r.on ? "playing" : ""}`} style={{ ["--ra" as any]: color || "#2F80FF", ["--sd" as any]: r.dur + "ms" }} role="button" aria-label={x.play} onClick={() => toggleReel(id, scenes.length, vo)}>
+    <div ref={ref} className={`reel ${short ? "short" : ""} ${r.on ? "playing" : ""} ${fake ? "fsx" : ""}`} style={{ ["--ra" as any]: color || "#2F80FF", ["--sd" as any]: r.dur + "ms" }} role="button" aria-label={x.play} onClick={() => toggleReel(id, scenes.length, vo)}>
       <div className="bars">{scenes.map((_, i) => <i key={i + "-" + (i === r.i ? r.i + String(r.on) : "")} className={i < r.i ? "done" : i === r.i ? "on" : ""}><b /></i>)}</div>
       <span className="bd">{cap}</span>
       {!short && <><div className="ice" /><div className="rp" /></>}
       {scenes.map((z, i) => <div key={i} className={`scene ${i === r.i ? "on" : ""}`}>{z}</div>)}
+      <button type="button" className="fsb" title={fsLabel} aria-label={fsLabel} onClick={toggleFs}>
+        {isFs
+          ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
+          : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>}
+      </button>
       <div className="ov"><span><Html html={IC.play.replace("<svg", '<svg width="24" height="24"')} /></span></div>
     </div>
   );

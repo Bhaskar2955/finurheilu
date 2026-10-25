@@ -477,6 +477,25 @@ nav.bottom button span{font-size:10px}
 .reel.short .scene .cap{align-self:center}
 .reel.short.playing .bars i.on b{animation-duration:var(--sd,3s)}
 .shortwrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+/* full-screen video */
+.reel .fsb{position:absolute;bottom:10px;inset-inline-end:10px;z-index:5;width:36px;height:36px;border-radius:50%;border:0;padding:0;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;cursor:pointer}
+.reel .fsb:hover,.reel .fsb:focus-visible{background:rgba(0,0,0,.8)}
+.reel .fsb .x{display:none}
+.reel:fullscreen,.reel.fsx{aspect-ratio:auto;max-width:none;width:100%;height:100%;margin:0;border-radius:0}
+.reel.fsx{position:fixed;inset:0;z-index:9999;height:100vh;height:100dvh}
+.reel:fullscreen .fsb .o,.reel.fsx .fsb .o{display:none}
+.reel:fullscreen .fsb .x,.reel.fsx .fsb .x{display:block}
+.reel:fullscreen .fsb,.reel.fsx .fsb{width:46px;height:46px;bottom:max(18px,env(safe-area-inset-bottom));inset-inline-end:18px}
+.reel:fullscreen .scene,.reel.fsx .scene{justify-content:center;align-items:center;text-align:center;gap:2vh;padding:10vh 6vw}
+.reel:fullscreen .scene .big,.reel.fsx .scene .big{font-size:clamp(44px,9vw,120px)!important}
+.reel:fullscreen .scene .cap,.reel.fsx .scene .cap{font-size:clamp(15px,2.2vw,24px)!important;align-self:center;max-width:900px;padding:10px 16px}
+.reel:fullscreen .scene .crest,.reel.fsx .scene .crest{width:clamp(64px,11vw,150px)!important;height:clamp(64px,11vw,150px)!important}
+.reel:fullscreen .scene .crest img,.reel.fsx .scene .crest img{width:100%;height:100%}
+.reel:fullscreen .scene .row,.reel.fsx .scene .row{gap:4vw!important}
+.reel:fullscreen .bars,.reel.fsx .bars{top:max(14px,env(safe-area-inset-top));left:4vw;right:4vw}
+.reel:fullscreen .bd,.reel.fsx .bd{top:calc(max(14px,env(safe-area-inset-top)) + 14px);inset-inline-end:4vw;font-size:12px}
+.reel:fullscreen .ov,.reel.fsx .ov{place-items:center}
+.reel:fullscreen .ov span,.reel.fsx .ov span{width:84px;height:84px}
 .fdots{display:flex;gap:6px}
 .fdots i{font-style:normal;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-family:var(--display);font-size:18px}
 .fdots i.w{background:var(--lime);color:#08111F}.fdots i.l{background:#3a4660;color:#fff}
@@ -828,13 +847,25 @@ function playPod(id){const st=STO[id];if(!st)return;if(pod.id===id&&pod.on){stop
  pod.timer=setInterval(()=>{const p=Math.min(1,(Date.now()-pod.t0)/pod.dur);const b=document.querySelector(`[data-pbar="${id}"]`);if(b)b.style.width=p*100+"%";if(p>=1&&!ok)stopPod()},200)}
 /* video reel */
 const reels={};
+const FSL={fi:"Koko näyttö",en:"Full screen",sv:"Helskärm"},FSX={fi:"Poistu koko näytöstä",en:"Exit full screen",sv:"Avsluta helskärm"};
+function fsBtn(){return `<button type="button" class="fsb" data-fs title="${esc(FSL[P.lang]||FSL.en)}" aria-label="${esc(FSL[P.lang]||FSL.en)}"><svg class="o" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><svg class="x" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></button>`}
+function fsCur(){return document.fullscreenElement||document.webkitFullscreenElement||document.querySelector(".reel.fsx")}
+function fsLabel(el,on){const b=el&&el.querySelector(".fsb");if(b){const t=(on?FSX:FSL)[P.lang]||(on?FSX:FSL).en;b.title=t;b.setAttribute("aria-label",t)}}
+function exitFs(){const cur=fsCur();if(!cur)return;if(cur.classList.contains("fsx")){cur.classList.remove("fsx");document.documentElement.style.overflow="";fsLabel(cur,false)}else{const ex=document.exitFullscreen||document.webkitExitFullscreen;if(ex)try{const r=ex.call(document);if(r&&r.catch)r.catch(()=>{})}catch(e){}}}
+function toggleFs(el){if(!el)return;if(fsCur()){exitFs();return}
+ // Real full screen where the browser allows it; otherwise (iPhone, embedded pages) fill the window.
+ const fake=()=>{el.classList.add("fsx");document.documentElement.style.overflow="hidden";fsLabel(el,true)};
+ const rq=el.requestFullscreen||el.webkitRequestFullscreen;
+ if(!rq)fake();else try{const r=rq.call(el);if(r&&r.catch)r.catch(fake)}catch(e){fake()}
+ const id=el.dataset.reel;if(!(reels[id]&&reels[id].on))toggleReel(id)}
+["fullscreenchange","webkitfullscreenchange"].forEach(ev=>document.addEventListener(ev,()=>{const cur=document.fullscreenElement||document.webkitFullscreenElement;document.querySelectorAll(".reel").forEach(r=>fsLabel(r,r===cur))}));
 function reel(st,tm){const x=s();const g=st.g;const c=T[tm]?T[tm].col:"#2F80FF";
  const sc=[`<div class="big">${esc(st.v[0])}</div>${g?`<div class="row">${crest(g.h,40)}<span class="d" style="font-size:22px">vs</span>${crest(g.a,40)}</div>`:crest(tm,44)}`,
   `<div class="big" style="font-size:52px;color:var(--lime)">${esc(st.v[1])}</div><div class="cap">${esc(st.v[2])}</div>`,
   `<div class="cap" style="font-size:14px">${esc(st.b)}</div>`];
  return `<div class="reel" data-reel="${st.id}" data-n="3" style="--ra:${c}" role="button" aria-label="${esc(x.play)}"><div class="bars">${sc.map((_,i)=>`<i class="${i?"":"on"}"><b></b></i>`).join("")}</div>
   <span class="bd">${esc(x.reel)}</span><div class="ice"></div><div class="rp"></div>${sc.map((z,i)=>`<div class="scene ${i?"":"on"}">${z}</div>`).join("")}
-  <div class="ov"><span>${IC.play.replace("<svg",'<svg width="24" height="24"')}</span></div></div>`}
+  ${fsBtn()}<div class="ov"><span>${IC.play.replace("<svg",'<svg width="24" height="24"')}</span></div></div>`}
 function stopReels(ex){Object.keys(reels).forEach(id=>{if(id!==ex)pauseReel(id)})}
 function pauseReel(id){const r=reels[id];if(!r)return;clearTimeout(r.t);r.on=false;const el=document.querySelector(`[data-reel="${id}"]`);if(el)el.classList.remove("playing")}
 function showScene(id,i){const el=document.querySelector(`[data-reel="${id}"]`);if(!el)return;el.querySelectorAll(".scene").forEach((z,k)=>z.classList.toggle("on",k===i));
@@ -1815,7 +1846,7 @@ function videoBlock(tm){const x=s();const st=story(tm,{len:"short",tone:P.tone==
   `<div class="big" style="font-size:34px">Fin<span style="color:var(--lime)">Urheilu</span></div><div class="cap">${esc(x.madeFrom)}</div><div class="cap">${esc(x.labEd)}</div>`].filter(Boolean);
  const vo=[plain(st.title),...st.body.map(plain),st.why?plain(st.why):""].filter(Boolean).join(". ").replace(/[.!]\./g,m=>m[0]);
  return `<div class="shortwrap"><div class="reel short" data-reel="sv:${esc(tm)}" data-n="${sc.length}" data-vo="${esc(vo)}" style="--ra:${T[tm].col}" role="button" aria-label="${esc(x.play)}"><div class="bars">${sc.map((_,i)=>`<i class="${i?"":"on"}"><b></b></i>`).join("")}</div>
-  <span class="bd">${esc(x.shortCap)}</span>${sc.map((z,i)=>`<div class="scene ${i?"":"on"}">${z}</div>`).join("")}<div class="ov"><span>${IC.play.replace("<svg",'<svg width="24" height="24"')}</span></div></div>
+  <span class="bd">${esc(x.shortCap)}</span>${sc.map((z,i)=>`<div class="scene ${i?"":"on"}">${z}</div>`).join("")}${fsBtn()}<div class="ov"><span>${IC.play.replace("<svg",'<svg width="24" height="24"')}</span></div></div>
   <div class="row"><button class="smallbtn" data-share="${esc(tm)}">${esc(x.share)} ↗</button><span class="small muted">${esc(x.madeFrom)}</span></div></div>`}
 function pauseReel(id){const r=reels[id];if(!r)return;clearTimeout(r.t);const was=r.on;r.on=false;const el=document.querySelector(`[data-reel="${id}"]`);if(el){el.classList.remove("playing");if(was&&el.dataset.vo)try{speechSynthesis.cancel()}catch(e){}}}
 function toggleReel(id){const r=reels[id]||(reels[id]={i:0,on:false});if(r.on){pauseReel(id);return}stopReels(id);stopPod();
@@ -1958,12 +1989,12 @@ function v2Click(e,q,x){let el;
  return false}
 document.addEventListener("input",e=>{const t=e.target;if(t.dataset&&t.dataset.note){P.notes=P.notes||{};P.notes[t.dataset.note]=t.value;clearTimeout(window.__nt);window.__nt=setTimeout(save,300)}
  if(t.id==="apiUrl")apiState.url=t.value;if(t.id==="apiKey")apiState.key=t.value});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")hidePop()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){hidePop();if(document.querySelector(".reel.fsx"))exitFs()}});
 /* demo seed: the latest Kärpät story is already approved; others wait in the newsroom */
 if(!P.apprInit){const st0=story("Kärpät",{});if(st0)P.appr[st0.id]={ok:1};P.apprInit=1;save()}
 
 /* ======================= RENDER ======================= */
-function render(){const x=s();document.documentElement.lang=P.lang;applyMode();stopPod();Object.keys(reels).forEach(pauseReel);STO={};CLR=[];FCR={};hidePop();
+function render(){const x=s();document.documentElement.lang=P.lang;applyMode();stopPod();Object.keys(reels).forEach(pauseReel);STO={};CLR=[];FCR={};hidePop();document.documentElement.style.overflow="";
  const app=$("#app");
  if(P.screen!=="app"){app.innerHTML=({splash:vSplash,register:vRegister,login:vLogin,plans:()=>vPlans(false),select:vSelect,personal:vPersonal})[P.screen]();$("#nav").hidden=true;$("#dock").hidden=true;document.body.classList.remove("has-dock");bindSearch();return}
  app.innerHTML=overlay?(overlay.pay?vPlans(true):overlay.notif?vNotif():overlay.week?vWeek():overlay.player?vPlayer():vDetail()):({home:vHome,matches:vMatches,calendar:vCalendar,teams:vTeams,profile:vProfile,newsroom:vNewsroom,community:vCommunity})[tab]();
@@ -2010,6 +2041,7 @@ document.addEventListener("click",e=>{const q=z=>e.target.closest(z);let el;cons
  if(q("[data-close]")){overlay=null;render();window.scrollTo(0,0);return}
  if(q("[data-golive]")){startLive();return}
  if(el=q("[data-podplay]")){playPod(el.dataset.podplay);return}
+ if(el=q("[data-fs]")){e.stopPropagation();toggleFs(el.closest(".reel"));return}
  if(el=q("[data-reel]")){toggleReel(el.dataset.reel);return}
  if(el=q("[data-open]")){if(overlay&&overlay.id===el.dataset.open)return;overlay={id:el.dataset.open};dSeg="sum";render();window.scrollTo(0,0);return}
  if(el=q("[data-mseg]")){mSeg=el.dataset.mseg;render();return}
